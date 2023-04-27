@@ -27,6 +27,6 @@ async fn main() -> std::io::Result<()> {
                 .service(controllers::users::create_user)
                 .service(controllers::users::get_user_by_email)
             )
-            //.service(authentication)
+            .service(controllers::authentication::authentication)
     }).bind(("127.0.0.1", port))?.run().await
 }
