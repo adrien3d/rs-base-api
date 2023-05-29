@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use mongodb::{bson::doc, Client, options::IndexOptions, IndexModel};
+use mongodb::{bson::{doc, oid::ObjectId}, Client, options::IndexOptions, IndexModel};
 
 pub const REPOSITORY_NAME: &str = "users";
 
@@ -11,6 +11,7 @@ pub struct AuthReq {
 
 #[derive(Clone, Debug, PartialEq, Eq, Deserialize, Serialize)]
 pub struct User {
+    pub _id: ObjectId,
     pub first_name: String,
     pub last_name: String,
     pub email: String,

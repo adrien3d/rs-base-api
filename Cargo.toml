@@ -7,5 +7,7 @@ edition = "2021"
 
 [dependencies]
 actix-web = "4.3.1"
-mongodb = "2.4.0"
-serde = "1.0.157"
+chrono = "0.4.25"
+jsonwebtoken = "8.3.0"
+mongodb = "2.5.0"
+serde = { version = "1.0.163", features = ["derive"] }
