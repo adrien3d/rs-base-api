@@ -27,7 +27,7 @@ async fn test() {
             .service(create_user)
             .service(get_user_by_email),
     )
-        .await;
+    .await;
 
     let user = User {
         first_name: "Jane".into(),

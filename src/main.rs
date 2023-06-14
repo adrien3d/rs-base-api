@@ -13,7 +13,10 @@ const DB_NAME: &str = "base-api";
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     let uri = std::env::var("MONGODB_URI").unwrap_or_else(|_| "mongodb://localhost:27017".into());
-    let port: u16 = std::env::var("PORT").unwrap_or_else(|_| "8080".into()).parse().unwrap();
+    let port: u16 = std::env::var("PORT")
+        .unwrap_or_else(|_| "8080".into())
+        .parse()
+        .unwrap();
 
     println!("Connecting to DB");
     let client = Client::with_uri_str(uri).await.expect("failed to connect");
@@ -23,10 +26,14 @@ async fn main() -> std::io::Result<()> {
     HttpServer::new(move || {
         App::new()
             .app_data(web::Data::new(client.clone()))
-            .service(web::scope("/users")
-                .service(controllers::users::create_user)
-                .service(controllers::users::get_user_by_email)
+            .service(
+                web::scope("/users")
+                    .service(controllers::users::create_user)
+                    .service(controllers::users::get_user_by_email),
             )
             .service(controllers::authentication::authentication)
-    }).bind(("127.0.0.1", port))?.run().await
+    })
+    .bind(("127.0.0.1", port))?
+    .run()
+    .await
 }

@@ -1,5 +1,9 @@
+use mongodb::{
+    bson::{doc, oid::ObjectId},
+    options::IndexOptions,
+    Client, IndexModel,
+};
 use serde::{Deserialize, Serialize};
-use mongodb::{bson::{doc, oid::ObjectId}, Client, options::IndexOptions, IndexModel};
 
 pub const REPOSITORY_NAME: &str = "users";
 
