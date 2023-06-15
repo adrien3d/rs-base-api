@@ -5,13 +5,15 @@ mod store;
 #[cfg(test)]
 mod test;
 
-use actix_web::{web, App, HttpServer};
+use actix_web::{web, App, HttpServer, middleware};
 use mongodb::Client;
 
 const DB_NAME: &str = "base-api";
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
+    env_logger::init_from_env(env_logger::Env::new().default_filter_or("info"));
+
     let uri = std::env::var("MONGODB_URI").unwrap_or_else(|_| "mongodb://localhost:27017".into());
     let port: u16 = std::env::var("PORT")
         .unwrap_or_else(|_| "8080".into())
@@ -26,6 +28,7 @@ async fn main() -> std::io::Result<()> {
     HttpServer::new(move || {
         App::new()
             .app_data(web::Data::new(client.clone()))
+            .wrap(middleware::Logger::default())
             .service(
                 web::scope("/users")
                     .service(controllers::users::create_user)
