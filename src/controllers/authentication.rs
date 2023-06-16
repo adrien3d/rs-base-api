@@ -3,16 +3,20 @@ use actix_web::{
     http::StatusCode,
     post,
     web::{self, Json},
-    HttpResponse, Responder,
+    Error, FromRequest, HttpRequest, HttpResponse, Responder,
 };
-use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, Validation};
+use jsonwebtoken::{decode, encode, Algorithm, DecodingKey, EncodingKey, Header, Validation};
 use mongodb::{bson::doc, Client, Collection};
 use serde::{Deserialize, Serialize};
 
+use actix_web::dev::Payload;
+use actix_web::error::ErrorUnauthorized;
+use futures::future::{err, ok, Ready};
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct TokenClaims {
-    pub sub: String,
-    pub id: String,
+    pub user_id: String,
+    pub role: String,
     pub iat: usize,
     pub exp: usize,
 }
@@ -38,8 +42,8 @@ pub(crate) async fn authentication(
     {
         Ok(Some(user)) => {
             let claims: TokenClaims = TokenClaims {
-                sub: "user".to_string(),
-                id: user._id.to_string(),
+                user_id: user._id.to_string(),
+                role: "admin".to_string(),
                 exp,
                 iat,
             };
@@ -77,7 +81,7 @@ pub fn check_jwt(token: String) -> Result<TokenClaims, (StatusCode, Json<ErrorRe
     let claims = decode::<TokenClaims>(
         &token,
         &DecodingKey::from_secret(secret_key.as_ref()),
-        &Validation::default(),
+        &Validation::new(Algorithm::HS256),
     )
     .map_err(|_| {
         let json_error = ErrorResponse {
@@ -90,16 +94,38 @@ pub fn check_jwt(token: String) -> Result<TokenClaims, (StatusCode, Json<ErrorRe
     println!("claims: {:?}", claims);
     Ok(claims)
 }
-/*let token_data = match decode::<TokenClaims>(
-    &token,
-    &DecodingKey::from_secret(secret_key),
-    &Validation::default(),
-) {
-    Ok(c) => c,
-    Err(err) => {
-        println!("err: {:?}", err.kind());
-        panic!()
+
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
+pub struct AuthorizationMiddleware {
+    pub user_id: String,
+    pub role: String,
+}
+
+impl FromRequest for AuthorizationMiddleware {
+    type Error = Error;
+    type Future = Ready<Result<AuthorizationMiddleware, Error>>;
+
+    fn from_request(req: &HttpRequest, _payload: &mut Payload) -> Self::Future {
+        let auth = req.headers().get("Authorization");
+        match auth {
+            Some(_) => {
+                let split: Vec<&str> = auth.unwrap().to_str().unwrap().split("Bearer").collect();
+                let token = split[1].trim();
+                let secret_key = "supersecret".as_bytes();
+                match decode::<TokenClaims>(
+                    &token.to_string(),
+                    &DecodingKey::from_secret(secret_key.as_ref()),
+                    &Validation::new(Algorithm::HS256),
+                ) {
+                    Ok(_token) => {
+                        let user_id = _token.claims.user_id;
+                        let role = _token.claims.role;
+                        ok(AuthorizationMiddleware { user_id, role })
+                    }
+                    Err(_e) => err(ErrorUnauthorized(_e)),
+                }
+            }
+            None => err(ErrorUnauthorized("Blocked")),
+        }
     }
-};
-println!("token data: {:?}", token_data);
-Ok(token_data)*/
+}

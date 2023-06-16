@@ -1,11 +1,12 @@
 mod configuration;
 mod controllers;
+mod middlewares;
 mod models;
 mod store;
 #[cfg(test)]
 mod test;
 
-use actix_web::{web, App, HttpServer, middleware};
+use actix_web::{middleware, web, App, HttpServer};
 use mongodb::Client;
 
 const DB_NAME: &str = "base-api";
@@ -29,6 +30,7 @@ async fn main() -> std::io::Result<()> {
         App::new()
             .app_data(web::Data::new(client.clone()))
             .wrap(middleware::Logger::default())
+            //.wrap(middlewares::authentication::AuthorizationMiddleware)
             .service(
                 web::scope("/users")
                     .service(controllers::users::create_user)
