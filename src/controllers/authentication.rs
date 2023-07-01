@@ -3,15 +3,11 @@ use actix_web::{
     http::StatusCode,
     post,
     web::{self, Json},
-    Error, FromRequest, HttpRequest, HttpResponse, Responder,
+    HttpResponse, Responder,
 };
 use jsonwebtoken::{decode, encode, Algorithm, DecodingKey, EncodingKey, Header, Validation};
 use mongodb::{bson::doc, Client, Collection};
 use serde::{Deserialize, Serialize};
-
-use actix_web::dev::Payload;
-use actix_web::error::ErrorUnauthorized;
-use futures::future::{err, ok, Ready};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct TokenClaims {
@@ -93,39 +89,4 @@ pub fn check_jwt(token: String) -> Result<TokenClaims, (StatusCode, Json<ErrorRe
     .claims;
     println!("claims: {:?}", claims);
     Ok(claims)
-}
-
-#[derive(Debug, PartialEq, Serialize, Deserialize)]
-pub struct AuthorizationMiddleware {
-    pub user_id: String,
-    pub role: String,
-}
-
-impl FromRequest for AuthorizationMiddleware {
-    type Error = Error;
-    type Future = Ready<Result<AuthorizationMiddleware, Error>>;
-
-    fn from_request(req: &HttpRequest, _payload: &mut Payload) -> Self::Future {
-        let auth = req.headers().get("Authorization");
-        match auth {
-            Some(_) => {
-                let split: Vec<&str> = auth.unwrap().to_str().unwrap().split("Bearer").collect();
-                let token = split[1].trim();
-                let secret_key = "supersecret".as_bytes();
-                match decode::<TokenClaims>(
-                    &token.to_string(),
-                    &DecodingKey::from_secret(secret_key.as_ref()),
-                    &Validation::new(Algorithm::HS256),
-                ) {
-                    Ok(_token) => {
-                        let user_id = _token.claims.user_id;
-                        let role = _token.claims.role;
-                        ok(AuthorizationMiddleware { user_id, role })
-                    }
-                    Err(_e) => err(ErrorUnauthorized(_e)),
-                }
-            }
-            None => err(ErrorUnauthorized("Blocked")),
-        }
-    }
 }

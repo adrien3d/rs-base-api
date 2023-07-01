@@ -9,6 +9,8 @@ mod test;
 use actix_web::{middleware, web, App, HttpServer};
 use mongodb::Client;
 
+use crate::middlewares::authorization::Authorization;
+
 const DB_NAME: &str = "base-api";
 
 #[actix_web::main]
@@ -26,17 +28,18 @@ async fn main() -> std::io::Result<()> {
     models::users::create_email_index(&client, DB_NAME).await;
 
     println!("Server starting on port: {}", port);
+
     HttpServer::new(move || {
         App::new()
             .app_data(web::Data::new(client.clone()))
+            .service(controllers::authentication::authentication)
             .wrap(middleware::Logger::default())
-            //.wrap(middlewares::authentication::AuthorizationMiddleware)
             .service(
                 web::scope("/users")
+                    .wrap(Authorization)
                     .service(controllers::users::create_user)
                     .service(controllers::users::get_user_by_email),
             )
-            .service(controllers::authentication::authentication)
     })
     .bind(("127.0.0.1", port))?
     .run()

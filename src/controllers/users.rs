@@ -15,7 +15,7 @@ pub async fn create_user(
     match result {
         Ok(_) => HttpResponse::Ok().body(""),
         Err(err) => {
-            println!("{}", err.to_string());
+            println!("{}", err);
             HttpResponse::InternalServerError().body("")
         }
     }
@@ -49,7 +49,7 @@ pub async fn update_user(
     match result {
         Ok(_) => HttpResponse::Ok().body(""),
         Err(err) => {
-            println!("{}", err.to_string());
+            println!("{}", err);
             HttpResponse::InternalServerError().body("")
         }
     }
