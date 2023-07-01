@@ -13,6 +13,23 @@ pub struct AuthReq {
     pub password: String,
 }
 
+#[derive(Debug, Clone)]
+pub struct RequestUser {
+    pub user_id: ObjectId,
+    pub org_id: ObjectId,
+    pub name: String,
+    pub email: String,
+    //pub user_entity_ids: UserEntityList,
+    pub is_admin: bool,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Claims {
+    pub user_id: String,
+    pub admin: bool,
+    pub exp: u32,
+}
+
 #[derive(Clone, Debug, PartialEq, Eq, Deserialize, Serialize)]
 pub struct User {
     pub _id: ObjectId,

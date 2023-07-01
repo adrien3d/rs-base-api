@@ -6,8 +6,14 @@ mod store;
 #[cfg(test)]
 mod test;
 
+use actix_identity::IdentityMiddleware;
 use actix_web::{middleware, web, App, HttpServer};
-use mongodb::Client;
+use mongodb::{bson::oid::ObjectId, Client};
+
+use crate::{
+    controllers::authentication::AppState,
+    middlewares::authorization::AuthenticateMiddlewareFactory,
+};
 
 const DB_NAME: &str = "base-api";
 
@@ -26,17 +32,23 @@ async fn main() -> std::io::Result<()> {
     models::users::create_email_index(&client, DB_NAME).await;
 
     println!("Server starting on port: {}", port);
+
+    let auth_data = AppState {
+        mongo_db: client.clone(),
+        admin_user: Some(ObjectId::new()),
+    };
     HttpServer::new(move || {
         App::new()
             .app_data(web::Data::new(client.clone()))
             .wrap(middleware::Logger::default())
-            //.wrap(middlewares::authentication::AuthorizationMiddleware)
+            .service(controllers::authentication::authentication)
             .service(
                 web::scope("/users")
+                    .wrap(AuthenticateMiddlewareFactory::new(auth_data.clone()))
+                    .wrap(IdentityMiddleware::default())
                     .service(controllers::users::create_user)
                     .service(controllers::users::get_user_by_email),
             )
-            .service(controllers::authentication::authentication)
     })
     .bind(("127.0.0.1", port))?
     .run()

@@ -1,8 +1,6 @@
-use crate::models::users;
+use crate::{models::users, DB_NAME, controllers::authentication::{AppState, Authenticated}};
 use actix_web::{delete, get, post, put, web, HttpResponse};
 use mongodb::{bson::doc, Client, Collection};
-
-pub(crate) const DB_NAME: &str = "base-api";
 
 /// Adds a new user to the "users" collection in the database.
 #[post("/")]
@@ -15,7 +13,7 @@ pub async fn create_user(
     match result {
         Ok(_) => HttpResponse::Ok().body(""),
         Err(err) => {
-            println!("{}", err.to_string());
+            println!("{}", err);
             HttpResponse::InternalServerError().body("")
         }
     }
@@ -24,9 +22,12 @@ pub async fn create_user(
 /// Gets the user with the supplied email.
 #[get("/{email}")]
 pub async fn get_user_by_email(
+    //app_data: AppState,
     client: web::Data<Client>,
     email: web::Path<String>,
+    auth: Authenticated,
 ) -> HttpResponse {
+    log::debug!("auth: {auth:?}");
     let email = email.into_inner();
     let collection: Collection<users::User> =
         client.database(DB_NAME).collection(users::REPOSITORY_NAME);
@@ -49,7 +50,7 @@ pub async fn update_user(
     match result {
         Ok(_) => HttpResponse::Ok().body(""),
         Err(err) => {
-            println!("{}", err.to_string());
+            println!("{}", err);
             HttpResponse::InternalServerError().body("")
         }
     }
