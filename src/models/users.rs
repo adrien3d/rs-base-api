@@ -1,5 +1,6 @@
+use chrono::Utc;
 use mongodb::{
-    bson::{doc, oid::ObjectId},
+    bson::{doc, oid::ObjectId, DateTime},
     options::IndexOptions,
     Client, IndexModel,
 };
@@ -35,8 +36,11 @@ pub struct User {
     pub _id: ObjectId,
     pub first_name: String,
     pub last_name: String,
+    pub role: String,
+    pub org_id: ObjectId,
     pub email: String,
     pub password: String,
+    //pub created: DateTime,
 }
 
 /// Creates an index on the "email" field to force the values to be unique.

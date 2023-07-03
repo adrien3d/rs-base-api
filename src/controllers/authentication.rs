@@ -1,5 +1,5 @@
 use crate::controllers::error::*;
-use crate::models::users::{self};
+use crate::models::users::{self, User};
 use crate::DB_NAME;
 use actix_web::{
     dev::ServiceRequest,
@@ -18,8 +18,8 @@ use serde::{Deserialize, Serialize};
 use std::{
     future::{ready, Ready},
     rc::Rc,
-    str::FromStr,
 };
+use crate::controllers::error::Error::DatabaseError;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct TokenClaims {
@@ -39,7 +39,7 @@ pub(crate) async fn authentication(
 
     let now = chrono::Utc::now();
     let iat = now.timestamp() as usize;
-    let exp = (now + chrono::Duration::minutes(60)).timestamp() as usize;
+    let exp = (now + chrono::Duration::days(1)).timestamp() as usize;
 
     let collection: Collection<users::User> =
         client.database(DB_NAME).collection(users::REPOSITORY_NAME);
@@ -103,13 +103,17 @@ pub fn check_jwt(token: String) -> Result<TokenClaims, (StatusCode, Json<ErrorRe
 }
 
 #[derive(Debug, Clone)]
-pub enum AuthenticationInfo {
-    /*ApiKey {
-        key: api_key::ApiKeyAuth,
-        user: RequestUser,
-    },*/
-    User(RequestUser),
+pub struct AuthenticationInfo { // TODO later: Was an enum
+    user: User,
+    api_key: String
 }
+
+/*impl AuthenticationInfo {
+    pub fn new(api_key: String, user: User)->AuthenticationInfo{
+        AuthenticationInfo::ApiKey { key: api_key }
+    }
+}*/
+
 #[derive(Clone, Debug)]
 pub struct AppState {
     pub mongo_db: mongodb::Client,
@@ -139,26 +143,6 @@ pub struct Permission {
     pub object: Option<ObjectId>,
 }
 
-#[derive(Debug, Clone)]
-pub struct User {
-    pub user_id: ObjectId,
-    pub external_user_id: String,
-    pub active_org_id: ObjectId,
-    pub name: String,
-    pub email: String,
-    pub active: bool,
-    pub created: DateTime<Utc>,
-}
-
-#[derive(Debug, Clone)]
-pub struct RequestUser {
-    pub user_id: ObjectId,
-    pub org_id: ObjectId,
-    pub name: String,
-    pub email: String,
-    pub user_entity_ids: UserEntityList,
-    pub is_admin: bool,
-}
 
 /// Extracts authentication information for routes that optionally require it.
 pub struct MaybeAuthenticated(Option<Rc<AuthenticationInfo>>);
@@ -210,7 +194,10 @@ impl FromRequest for Authenticated {
         let value = req.extensions().get::<Rc<AuthenticationInfo>>().cloned();
         let result = match value {
             Some(v) => Ok(Authenticated(v)),
-            None => Err(Error::AuthenticationError),
+            None => {
+                log::error!("Empty Authenticated");
+                Err(Error::AuthenticationError)
+            }
         };
         ready(result)
     }
@@ -221,55 +208,6 @@ impl std::ops::Deref for Authenticated {
 
     fn deref(&self) -> &Self::Target {
         &self.0
-    }
-}
-
-pub type UserEntityList = smallvec::SmallVec<[ObjectId; 4]>;
-
-impl AuthenticationInfo {
-    pub fn org_id(&self) -> &ObjectId {
-        match self {
-            Self::User(user) => &user.org_id,
-            //Self::ApiKey { key, .. } => &key.org_id,
-        }
-    }
-
-    pub fn user_id(&self) -> &ObjectId {
-        match self {
-            Self::User(user) => &user.user_id,
-            //Self::ApiKey { user, .. } => &user.user_id,
-        }
-    }
-
-    // pub fn user_entity_ids(&self) -> UserEntityList {
-    //     match self {
-    //         Self::User(user) => user.user_entity_ids.clone(),
-    //         Self::ApiKey { key, user } => match (key.inherits_user_permissions, user) {
-    //             (false, _) => {
-    //                 let mut list = UserEntityList::new();
-    //                 list.push(key.api_key_id);
-    //                 list
-    //             }
-    //             (true, user) => {
-    //                 let mut ids = user.user_entity_ids.clone();
-    //                 ids.push(key.api_key_id);
-    //                 ids
-    //             }
-    //         },
-    //     }
-    // }
-
-    pub fn expect_admin(&self) -> Result<(), Error> {
-        let is_admin = match self {
-            Self::User(user) => user.is_admin,
-            //Self::ApiKey { user, .. } => user.is_admin,
-        };
-
-        if is_admin {
-            Ok(())
-        } else {
-            Err(Error::AuthorizationError)
-        }
     }
 }
 
@@ -287,39 +225,87 @@ impl AppState {
         identity: Option<actix_identity::Identity>,
         req: &ServiceRequest,
     ) -> Result<Option<AuthenticationInfo>, Error> {
-        /*if let Some(auth) = api_key::get_api_key(self, req).await? {
-            return Ok(Some(auth));
-        }*/
+        let auth = req.headers().get("Authorization");
+        match auth {
+            Some(_) => {
+                let split: Vec<&str> = auth.unwrap().to_str().unwrap().split("Bearer ").collect();
 
-        match identity {
-            Some(identity) => {
-                let user_id =
-                    ObjectId::from_str(&identity.id().map_err(|_| Error::AuthenticationError)?)
-                        .map_err(|_| Error::AuthenticationError)?;
-
-                let req_user = self.get_user_info(&user_id).await?;
-                Ok(Some(AuthenticationInfo::User(req_user)))
+                let mut token: String = "".to_string();
+                for element in split {
+                    if element.len() > 0 {
+                        token = element.trim().to_string();
+                    }
+                }
+                match check_jwt(token) {
+                    Ok(token_claims) => {
+                        // Function returned Ok, do something with token_claims
+                        log::debug!("Token claims: {:?}", token_claims);
+                        let dummy_user = User {
+                            _id: ObjectId::new(),
+                            first_name: "John".to_string(),
+                            last_name: "Doe".to_string(),
+                            role: "admin".to_string(),
+                            org_id: ObjectId::new(),
+                            email: "john.doe@example.com".to_string(),
+                            password: "password".to_string(),
+                            //created: DateTime::from_utc(),
+                        };
+                        log::debug!("dummy: {dummy_user:?}");
+                        let req_user = self.get_user_info(token_claims.user_id).await?;
+                        log::debug!("req_user: {req_user:?}");
+                        let user = AuthenticationInfo { user: req_user, api_key: "".to_string() };
+                        log::debug!("user: {user:?}");
+                        Ok(Some(user))
+                    }
+                    Err((status, error_response)) => {
+                        // Function returned an error, handle the error
+                        println!("Status code: {:?}", status);
+                        println!("Error response: {:?}", error_response);
+                        Err(Error::AuthorizationError)
+                    }
+                }
             }
-            None => Ok(None),
+            None => {
+                log::info!("Spurious request for: {}", req.path());
+                Err(Error::AuthenticationError)
+            }
         }
+        // match identity {
+        //     Some(identity) => {
+        //         let user_id =
+        //             ObjectId::from_str(&identity.id()
+        //                 .map_err(|_| Error::AuthenticationError)?)
+        //                     .map_err(|_| Error::AuthenticationError)?;
+
+        //         let req_user = self.get_user_info(&user_id).await?;
+        //         Ok(Some(AuthenticationInfo::User(req_user)))
+        //     }
+        //     None => Ok(None),
+        // }
     }
 
-    async fn get_user_info(&self, user_id: &ObjectId) -> Result<RequestUser, Error> {
+    async fn get_user_info(&self, user_id: String) -> Result<User, Error> {
         let collection: Collection<users::User> = self
             .mongo_db
             .database(DB_NAME)
             .collection(users::REPOSITORY_NAME);
-        match collection.find_one(doc! { "_id": &user_id }, None).await {
-            Ok(Some(user)) => Ok(RequestUser {
-                user_id: user._id,
-                name: user.last_name,
+        let user_object_id = ObjectId::parse_str(user_id).unwrap();
+        match collection.find_one(doc! { "_id": &user_object_id }, None).await {
+            Ok(Some(user)) => Ok(User {
+                _id: user._id,
+                first_name: user.first_name,
+                last_name: user.last_name,
                 email: user.email,
-                is_admin: false,
-                org_id: todo!(),
-                user_entity_ids: todo!(),
+                role: user.role,
+                org_id: user.org_id,
+                password: "".to_string(),
+                //created: user.created,
             }),
             Ok(None) => todo!(),
-            Err(err) => todo!(),
+            Err(err) => {
+                log::error!("get_user_info err: {err}");
+                Err(DatabaseError(err.to_string()))
+            }
         }
         // let mut conn = self.pg.acquire().await?;
         // get_user_info(&mut conn, user_id, self.admin_user.as_ref()).await

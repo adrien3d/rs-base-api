@@ -27,11 +27,11 @@ async fn main() -> std::io::Result<()> {
         .parse()
         .unwrap();
 
-    println!("Connecting to DB");
+    log::info!("Connecting to DB");
     let client = Client::with_uri_str(uri).await.expect("failed to connect");
     models::users::create_email_index(&client, DB_NAME).await;
 
-    println!("Server starting on port: {}", port);
+    log::info!("Server starting on port: {}", port);
 
     let auth_data = AppState {
         mongo_db: client.clone(),

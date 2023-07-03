@@ -1,4 +1,8 @@
-use crate::{models::users, DB_NAME, controllers::authentication::{AppState, Authenticated}};
+use crate::{
+    controllers::authentication::{AppState, Authenticated},
+    models::users,
+    DB_NAME,
+};
 use actix_web::{delete, get, post, put, web, HttpResponse};
 use mongodb::{bson::doc, Client, Collection};
 
