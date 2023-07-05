@@ -1,4 +1,4 @@
-use crate::controllers::authentication::{check_jwt, AppState, AuthenticationInfo};
+use crate::controllers::authentication::{AppState, AuthenticationInfo};
 
 use std::rc::Rc;
 

@@ -1,6 +1,6 @@
-use chrono::Utc;
+use json::JsonValue;
 use mongodb::{
-    bson::{doc, oid::ObjectId, DateTime},
+    bson::{doc, oid::ObjectId},
     options::IndexOptions,
     Client, IndexModel,
 };
@@ -37,10 +37,44 @@ pub struct User {
     pub first_name: String,
     pub last_name: String,
     pub role: String,
-    pub org_id: ObjectId,
+    pub org_id: Option<ObjectId>,
     pub email: String,
     pub password: String,
     //pub created: DateTime,
+}
+
+impl User {
+    pub fn from_json_value(json: &JsonValue) -> Option<User> {
+        // Extract the values from the JSON fields
+        let first_name = json["first_name"].as_str()?.to_string();
+        let last_name = json["last_name"].as_str()?.to_string();
+        let role = json["role"].as_str()?.to_string();
+        let email = json["email"].as_str()?.to_string();
+        let password = json["password"].as_str()?.to_string();
+
+        let mut org_object_id = ObjectId::new();
+        match json["org_id"].as_str() {
+            Some(org_id) => {
+                if !org_id.is_empty() {
+                    match mongodb::bson::oid::ObjectId::parse_str(org_id) {
+                        Ok(oid) => org_object_id = oid,
+                        Err(error) => log::error!("Org_id to Mongo Object ID fail: {error:?}"),
+                    }
+                }
+            }
+            None => log::warn!("No organization id for: {email}"),
+        }
+
+        Some(User {
+            _id: ObjectId::new(),
+            first_name,
+            last_name,
+            role,
+            org_id: Some(org_object_id),
+            email,
+            password,
+        })
+    }
 }
 
 /// Creates an index on the "email" field to force the values to be unique.

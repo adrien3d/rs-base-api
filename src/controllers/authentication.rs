@@ -15,11 +15,11 @@ use mongodb::{
 };
 use serde::{Deserialize, Serialize};
 
+use crate::controllers::error::Error::DatabaseError;
 use std::{
     future::{ready, Ready},
     rc::Rc,
 };
-use crate::controllers::error::Error::DatabaseError;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct TokenClaims {
@@ -103,9 +103,10 @@ pub fn check_jwt(token: String) -> Result<TokenClaims, (StatusCode, Json<ErrorRe
 }
 
 #[derive(Debug, Clone)]
-pub struct AuthenticationInfo { // TODO later: Was an enum
+pub struct AuthenticationInfo {
+    // TODO later: Was an enum
     user: User,
-    api_key: String
+    api_key: String,
 }
 
 /*impl AuthenticationInfo {
@@ -122,8 +123,6 @@ pub struct AppState {
 }
 
 use actix_web::{FromRequest, HttpMessage, HttpRequest};
-use chrono::{DateTime, Utc};
-use tracing::{event, field, instrument, Level};
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum PermissionType {
@@ -142,7 +141,6 @@ pub struct Permission {
     #[serde(rename = "permissioned_object")]
     pub object: Option<ObjectId>,
 }
-
 
 /// Extracts authentication information for routes that optionally require it.
 pub struct MaybeAuthenticated(Option<Rc<AuthenticationInfo>>);
@@ -222,7 +220,7 @@ impl AppState {
     // Authenticate via cookie or API key, depending on what's provided.
     pub async fn authenticate(
         &self,
-        identity: Option<actix_identity::Identity>,
+        _identity: Option<actix_identity::Identity>,
         req: &ServiceRequest,
     ) -> Result<Option<AuthenticationInfo>, Error> {
         let auth = req.headers().get("Authorization");
@@ -245,7 +243,7 @@ impl AppState {
                             first_name: "John".to_string(),
                             last_name: "Doe".to_string(),
                             role: "admin".to_string(),
-                            org_id: ObjectId::new(),
+                            org_id: Some(ObjectId::new()),
                             email: "john.doe@example.com".to_string(),
                             password: "password".to_string(),
                             //created: DateTime::from_utc(),
@@ -253,7 +251,10 @@ impl AppState {
                         log::debug!("dummy: {dummy_user:?}");
                         let req_user = self.get_user_info(token_claims.user_id).await?;
                         log::debug!("req_user: {req_user:?}");
-                        let user = AuthenticationInfo { user: req_user, api_key: "".to_string() };
+                        let user = AuthenticationInfo {
+                            user: req_user,
+                            api_key: "".to_string(),
+                        };
                         log::debug!("user: {user:?}");
                         Ok(Some(user))
                     }
@@ -290,7 +291,10 @@ impl AppState {
             .database(DB_NAME)
             .collection(users::REPOSITORY_NAME);
         let user_object_id = ObjectId::parse_str(user_id).unwrap();
-        match collection.find_one(doc! { "_id": &user_object_id }, None).await {
+        match collection
+            .find_one(doc! { "_id": &user_object_id }, None)
+            .await
+        {
             Ok(Some(user)) => Ok(User {
                 _id: user._id,
                 first_name: user.first_name,

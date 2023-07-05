@@ -1,25 +1,34 @@
 use crate::{
-    controllers::authentication::{AppState, Authenticated},
-    models::users,
+    controllers::authentication::Authenticated,
+    models::users::{self, User},
     DB_NAME,
 };
 use actix_web::{delete, get, post, put, web, HttpResponse};
+use json;
 use mongodb::{bson::doc, Client, Collection};
 
 /// Adds a new user to the "users" collection in the database.
 #[post("/")]
-pub async fn create_user(
-    client: web::Data<Client>,
-    req_user: web::Json<users::User>,
-) -> HttpResponse {
-    let collection = client.database(DB_NAME).collection(users::REPOSITORY_NAME);
-    let result = collection.insert_one(req_user, None).await;
-    match result {
-        Ok(_) => HttpResponse::Ok().body(""),
-        Err(err) => {
-            println!("{}", err);
-            HttpResponse::InternalServerError().body("")
+pub async fn create_user(client: web::Data<Client>, body: web::Bytes) -> HttpResponse {
+    let result = json::parse(std::str::from_utf8(&body).unwrap()); // return Result
+    let injson: json::JsonValue = match result {
+        Ok(v) => v,
+        Err(e) => json::object! {"err" => e.to_string() },
+    };
+
+    match User::from_json_value(&injson) {
+        Some(user) => {
+            let collection = client.database(DB_NAME).collection(users::REPOSITORY_NAME);
+            let result = collection.insert_one(user, None).await;
+            match result {
+                Ok(_) => HttpResponse::Ok().body(""),
+                Err(err) => {
+                    println!("{}", err);
+                    HttpResponse::InternalServerError().body("")
+                }
+            }
         }
+        None => return HttpResponse::InternalServerError().body("Parsing error"),
     }
 }
 
