@@ -5,6 +5,7 @@ mod models;
 mod store;
 #[cfg(test)]
 mod test;
+mod utils;
 
 use actix_identity::IdentityMiddleware;
 use actix_web::{middleware, web, App, HttpServer};

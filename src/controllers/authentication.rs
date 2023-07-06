@@ -48,32 +48,39 @@ pub(crate) async fn authentication(
         .await
     {
         Ok(Some(user)) => {
-            let claims: TokenClaims = TokenClaims {
-                user_id: user._id.to_string(),
-                role: "admin".to_string(),
-                exp,
-                iat,
-            };
-
-            let token = encode(
-                &Header::default(),
-                &claims,
-                &EncodingKey::from_secret(secret_key.as_ref()),
-            )
-            .unwrap();
-
-            return HttpResponse::Ok().json(token);
+            let pwd_correct =
+                argon2::verify_encoded(user.password.as_str(), &req_body.password.as_bytes())
+                    .unwrap();
+            if pwd_correct {
+                let claims: TokenClaims = TokenClaims {
+                    user_id: user._id.to_string(),
+                    role: "admin".to_string(),
+                    exp,
+                    iat,
+                };
+    
+                let token = encode(
+                    &Header::default(),
+                    &claims,
+                    &EncodingKey::from_secret(secret_key.as_ref()),
+                )
+                .unwrap();
+    
+                HttpResponse::Ok().json(token)
+            } else {
+                return HttpResponse::InternalServerError().body("Bad password");
+            }
         }
         Ok(None) => {
-            return HttpResponse::NotFound().body(format!(
+            HttpResponse::NotFound().body(format!(
                 "No user found with email {}",
                 &req_body.email.to_string()
-            ));
+            ))
         }
         Err(err) => HttpResponse::InternalServerError().body(err.to_string()),
     };
     // let matching = verify(&user.hash, &auth_data.password);
-    HttpResponse::Ok().json(req_body)
+    HttpResponse::NoContent().into()
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -237,25 +244,14 @@ impl AppState {
                 match check_jwt(token) {
                     Ok(token_claims) => {
                         // Function returned Ok, do something with token_claims
-                        log::debug!("Token claims: {:?}", token_claims);
-                        let dummy_user = User {
-                            _id: ObjectId::new(),
-                            first_name: "John".to_string(),
-                            last_name: "Doe".to_string(),
-                            role: "admin".to_string(),
-                            org_id: Some(ObjectId::new()),
-                            email: "john.doe@example.com".to_string(),
-                            password: "password".to_string(),
-                            //created: DateTime::from_utc(),
-                        };
-                        log::debug!("dummy: {dummy_user:?}");
+                        //log::debug!("Token claims: {:?}", token_claims);
                         let req_user = self.get_user_info(token_claims.user_id).await?;
-                        log::debug!("req_user: {req_user:?}");
+                        //log::debug!("req_user: {req_user:?}");
                         let user = AuthenticationInfo {
                             user: req_user,
                             api_key: "".to_string(),
                         };
-                        log::debug!("user: {user:?}");
+                        //log::debug!("user: {user:?}");
                         Ok(Some(user))
                     }
                     Err((status, error_response)) => {
@@ -305,7 +301,7 @@ impl AppState {
                 password: "".to_string(),
                 //created: user.created,
             }),
-            Ok(None) => todo!(),
+            Ok(None) => Err(DatabaseError("User not found".to_string())),
             Err(err) => {
                 log::error!("get_user_info err: {err}");
                 Err(DatabaseError(err.to_string()))

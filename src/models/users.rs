@@ -50,7 +50,7 @@ impl User {
         let last_name = json["last_name"].as_str()?.to_string();
         let role = json["role"].as_str()?.to_string();
         let email = json["email"].as_str()?.to_string();
-        let password = json["password"].as_str()?.to_string();
+        let password = json["password"].as_str()?;
 
         let mut org_object_id = ObjectId::new();
         match json["org_id"].as_str() {
@@ -65,6 +65,7 @@ impl User {
             None => log::warn!("No organization id for: {email}"),
         }
 
+        let hashed_password = crate::utils::utils::hash_password(password);
         Some(User {
             _id: ObjectId::new(),
             first_name,
@@ -72,7 +73,7 @@ impl User {
             role,
             org_id: Some(org_object_id),
             email,
-            password,
+            password: hashed_password,
         })
     }
 }
