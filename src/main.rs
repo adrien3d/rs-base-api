@@ -5,15 +5,16 @@ mod models;
 mod store;
 #[cfg(test)]
 mod test;
-mod utils;
 
 use actix_identity::IdentityMiddleware;
 use actix_web::{middleware, web, App, HttpServer};
+use argon2::Config;
 use mongodb::{bson::oid::ObjectId, Client};
 
 use crate::{
     controllers::authentication::AppState,
     middlewares::authorization::AuthenticateMiddlewareFactory,
+    models::users::{self, User},
 };
 
 const DB_NAME: &str = "base-api";
@@ -33,6 +34,24 @@ async fn main() -> std::io::Result<()> {
     models::users::create_email_index(&client, DB_NAME).await;
 
     log::info!("Server starting on port: {}", port);
+
+    let collection = client.database(DB_NAME).collection(users::REPOSITORY_NAME);
+
+    let salt = std::env::var("SECRET_KEY").unwrap_or_else(|_| "0123".repeat(16));
+    let config = Config::default();
+    let hashed_password =
+        argon2::hash_encoded("password".as_bytes(), salt.as_bytes(), &config).unwrap();
+
+    let admin_user = User {
+        _id: ObjectId::new(),
+        first_name: "Adrien".to_string(),
+        last_name: "Chapelet".to_string(),
+        role: "god".to_string(),
+        org_id: Some(ObjectId::new()),
+        email: "adrien3d@gmail.com".to_string(),
+        password: hashed_password,
+    };
+    let _ = collection.insert_one(admin_user, None).await;
 
     let auth_data = AppState {
         mongo_db: client.clone(),

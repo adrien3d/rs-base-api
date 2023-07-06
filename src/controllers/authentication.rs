@@ -51,6 +51,7 @@ pub(crate) async fn authentication(
             let pwd_correct =
                 argon2::verify_encoded(user.password.as_str(), &req_body.password.as_bytes())
                     .unwrap();
+            log::debug!("pwd_correct: {pwd_correct}");
             if pwd_correct {
                 let claims: TokenClaims = TokenClaims {
                     user_id: user._id.to_string(),
@@ -58,25 +59,23 @@ pub(crate) async fn authentication(
                     exp,
                     iat,
                 };
-    
+
                 let token = encode(
                     &Header::default(),
                     &claims,
                     &EncodingKey::from_secret(secret_key.as_ref()),
                 )
                 .unwrap();
-    
-                HttpResponse::Ok().json(token)
+
+                return HttpResponse::Ok().json(token);
             } else {
                 return HttpResponse::InternalServerError().body("Bad password");
             }
         }
-        Ok(None) => {
-            HttpResponse::NotFound().body(format!(
-                "No user found with email {}",
-                &req_body.email.to_string()
-            ))
-        }
+        Ok(None) => HttpResponse::NotFound().body(format!(
+            "No user found with email {}",
+            &req_body.email.to_string()
+        )),
         Err(err) => HttpResponse::InternalServerError().body(err.to_string()),
     };
     // let matching = verify(&user.hash, &auth_data.password);

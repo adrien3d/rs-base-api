@@ -1,3 +1,4 @@
+use argon2::Config;
 use json::JsonValue;
 use mongodb::{
     bson::{doc, oid::ObjectId},
@@ -65,7 +66,11 @@ impl User {
             None => log::warn!("No organization id for: {email}"),
         }
 
-        let hashed_password = crate::utils::utils::hash_password(password);
+        let salt = std::env::var("SECRET_KEY").unwrap_or_else(|_| "0123".repeat(16));
+        let config = Config::default();
+        let hashed_password =
+            argon2::hash_encoded(password.as_bytes(), salt.as_bytes(), &config).unwrap();
+
         Some(User {
             _id: ObjectId::new(),
             first_name,
