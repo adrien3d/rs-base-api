@@ -44,7 +44,28 @@ pub struct User {
     //pub created: DateTime,
 }
 
+#[derive(Clone, Debug, PartialEq, Eq, Deserialize, Serialize)]
+pub struct SanitizedUser {
+    pub _id: ObjectId,
+    pub first_name: String,
+    pub last_name: String,
+    pub role: String,
+    pub org_id: Option<ObjectId>,
+    pub email: String,
+}
+
 impl User {
+    pub fn sanitize(&self) -> SanitizedUser {
+        SanitizedUser {
+            _id: self._id,
+            first_name: self.first_name.clone(),
+            last_name: self.last_name.clone(),
+            role: self.role.clone(),
+            org_id: self.org_id,
+            email: self.email.clone(),
+        }
+    }
+
     pub fn from_json_value(json: &JsonValue) -> Option<User> {
         // Extract the values from the JSON fields
         let first_name = json["first_name"].as_str()?.to_string();

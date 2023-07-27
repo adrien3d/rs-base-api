@@ -51,10 +51,7 @@ pub async fn get_user_by_email(
     let collection: Collection<users::User> =
         client.database(DB_NAME).collection(users::REPOSITORY_NAME);
     match collection.find_one(doc! { "email": &email }, None).await {
-        Ok(Some(mut user)) => {
-            user.password = "".to_string();
-            HttpResponse::Ok().json(user)
-        },
+        Ok(Some(user)) => HttpResponse::Ok().json(user.sanitize()),
         Ok(None) => HttpResponse::NotFound().body(format!("No user found with email {email}")),
         Err(err) => HttpResponse::InternalServerError().body(err.to_string()),
     }
