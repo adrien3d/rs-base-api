@@ -10,9 +10,8 @@ pub enum Error {
     #[error("Unauthorized")]
     AuthorizationError,
 
-    #[error("Password hasher error: {0}")]
-    PasswordHasherError(String),
-
+    //#[error("Password hasher error: {0}")]
+    //PasswordHasherError(String),
     #[error("Environment variable error: {0}")]
     EnvOptionError(String),
 

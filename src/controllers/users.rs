@@ -28,7 +28,8 @@ pub async fn create_user(
             match result {
                 Ok(_) => HttpResponse::Ok().body(""),
                 Err(err) => {
-                    println!("{}", err);
+                    log::warn!("{}", err);
+                    //TODO: Handle duplicate keys (emails)
                     HttpResponse::InternalServerError().body("")
                 }
             }
@@ -50,7 +51,10 @@ pub async fn get_user_by_email(
     let collection: Collection<users::User> =
         client.database(DB_NAME).collection(users::REPOSITORY_NAME);
     match collection.find_one(doc! { "email": &email }, None).await {
-        Ok(Some(user)) => HttpResponse::Ok().json(user),
+        Ok(Some(mut user)) => {
+            user.password = "".to_string();
+            HttpResponse::Ok().json(user)
+        },
         Ok(None) => HttpResponse::NotFound().body(format!("No user found with email {email}")),
         Err(err) => HttpResponse::InternalServerError().body(err.to_string()),
     }
