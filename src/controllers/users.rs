@@ -15,15 +15,16 @@ pub async fn create_user(
     body: web::Bytes,
 ) -> HttpResponse {
     log::debug!("auth: {auth:?}");
-    let result = json::parse(std::str::from_utf8(&body).unwrap()); // return Result
-    let injson: json::JsonValue = match result {
+    let json_parse_res = json::parse(std::str::from_utf8(&body).unwrap()); // return Result
+    let user_in_json: json::JsonValue = match json_parse_res {
         Ok(v) => v,
         Err(e) => json::object! {"err" => e.to_string() },
     };
 
-    match User::from_json_value(&injson) {
+    match User::from_json_value(&user_in_json) {
         Some(user) => {
-            let collection = client.database(DB_NAME).collection(users::REPOSITORY_NAME);
+            let collection: Collection<User> =
+                client.database(DB_NAME).collection(users::REPOSITORY_NAME);
             let result = collection.insert_one(user, None).await;
             match result {
                 Ok(_) => HttpResponse::Ok().body(""),
@@ -42,9 +43,9 @@ pub async fn create_user(
 #[get("/{email}")]
 pub async fn get_user_by_email(
     //app_data: AppState,
+    auth: Authenticated,
     client: web::Data<Client>,
     email: web::Path<String>,
-    auth: Authenticated,
 ) -> HttpResponse {
     log::debug!("auth: {auth:?}");
     let email = email.into_inner();
@@ -60,18 +61,35 @@ pub async fn get_user_by_email(
 /// Updates a user
 #[put("/")]
 pub async fn update_user(
+    auth: Authenticated,
     client: web::Data<Client>,
-    req_user: web::Json<users::User>,
+    body: web::Bytes,
 ) -> HttpResponse {
-    let collection = client.database(DB_NAME).collection(users::REPOSITORY_NAME);
+    log::debug!("auth: {auth:?}");
+    let json_parse_res = json::parse(std::str::from_utf8(&body).unwrap()); // return Result
+    let user_in_json: json::JsonValue = match json_parse_res {
+        Ok(v) => v,
+        Err(e) => json::object! {"err" => e.to_string() },
+    };
 
-    let result = collection.insert_one(req_user, None).await;
-    match result {
-        Ok(_) => HttpResponse::Ok().body(""),
-        Err(err) => {
-            println!("{}", err);
-            HttpResponse::InternalServerError().body("")
+    match User::from_json_value(&user_in_json) {
+        Some(new_user) => {
+            let new_user_copy = new_user.clone();
+            let collection: Collection<User> =
+                client.database(DB_NAME).collection(users::REPOSITORY_NAME);
+            let filter = doc! {"email": new_user_copy.email};
+            let update = doc! {"$set": {"first_name": new_user_copy.first_name}};
+            let result = collection.update_one(filter, update, None).await;
+            match result {
+                Ok(_) => HttpResponse::Ok().json(new_user),
+                Err(err) => {
+                    log::warn!("{}", err);
+                    //TODO: Handle multiple fields
+                    HttpResponse::InternalServerError().body("")
+                }
+            }
         }
+        None => HttpResponse::InternalServerError().body("Parsing error"),
     }
 }
 

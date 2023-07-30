@@ -67,7 +67,9 @@ async fn main() -> std::io::Result<()> {
                     .wrap(AuthenticateMiddlewareFactory::new(auth_data.clone()))
                     .wrap(IdentityMiddleware::default())
                     .service(controllers::users::create_user)
-                    .service(controllers::users::get_user_by_email),
+                    .service(controllers::users::get_user_by_email)
+                    .service(controllers::users::update_user)
+                    .service(controllers::users::delete_user_by_email),
             )
     })
     .bind(("127.0.0.1", port))?
