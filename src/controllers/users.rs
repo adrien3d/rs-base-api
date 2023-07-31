@@ -5,7 +5,7 @@ use crate::{
 };
 use actix_web::{delete, get, post, put, web, HttpResponse};
 use json;
-use mongodb::{bson::doc, Client, Collection};
+use mongodb::{bson, bson::Document, bson::doc, Client, Collection};
 
 /// Adds a new user to the "users" collection in the database.
 #[post("/")]
@@ -78,7 +78,11 @@ pub async fn update_user(
             let collection: Collection<User> =
                 client.database(DB_NAME).collection(users::REPOSITORY_NAME);
             let filter = doc! {"email": new_user_copy.email};
-            let update = doc! {"$set": {"first_name": new_user_copy.first_name}};
+            let new_user_bson = match bson::to_bson(&new_user_copy) {
+                Document(doc) => doc,
+                _ => unreachable!(),
+            };
+            let update = doc! {"$set": new_user_bson };
             let result = collection.update_one(filter, update, None).await;
             match result {
                 Ok(_) => HttpResponse::Ok().json(new_user),
