@@ -69,7 +69,7 @@ async fn main() -> std::io::Result<()> {
                     .service(controllers::users::create_user)
                     .service(controllers::users::get_user_by_email)
                     .service(controllers::users::update_user)
-                    .service(controllers::users::delete_user_by_email),
+                    .service(controllers::users::delete_user_by_id),
             )
     })
     .bind(("127.0.0.1", port))?
