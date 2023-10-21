@@ -5,19 +5,34 @@ mod models;
 mod store;
 #[cfg(test)]
 mod test;
+mod websocket;
 
 use actix_identity::IdentityMiddleware;
 use actix_web::{middleware, web, App, HttpServer};
 use argon2::Config;
 use mongodb::{bson::oid::ObjectId, Client};
+use tokio::sync::broadcast;
+use tokio::sync::broadcast::Sender;
 
 use crate::{
-    controllers::authentication::AppState,
+    controllers::authentication::AuthState,
     middlewares::authorization::AuthenticateMiddlewareFactory,
     models::users::{self, User},
 };
 
 const DB_NAME: &str = "base-api";
+
+/// The maximum size of a package the server will accept.
+pub const MAX_FRAME_SIZE: usize = 250_000_000; // 250Mb
+
+pub struct ProgramAppState {
+    /// A Network Time Protocol used as a time source.
+    //pub ntp: Ntp,
+    /// MongoDB client
+    pub mongo_db_client: Client,
+    /// A channel for messages to the UI.
+    pub ui_sender_channel: Sender<Vec<u8>>,
+}
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -30,12 +45,14 @@ async fn main() -> std::io::Result<()> {
         .unwrap();
 
     log::info!("Connecting to DB");
-    let client = Client::with_uri_str(uri).await.expect("failed to connect");
-    models::users::create_email_index(&client, DB_NAME).await;
+    let mongo_db_client = Client::with_uri_str(uri).await.expect("failed to connect");
+    models::users::create_email_index(&mongo_db_client, DB_NAME).await;
 
     log::info!("Server starting on port: {}", port);
 
-    let collection = client.database(DB_NAME).collection(users::REPOSITORY_NAME);
+    let collection = mongo_db_client
+        .database(DB_NAME)
+        .collection(users::REPOSITORY_NAME);
 
     let salt = std::env::var("SECRET_KEY").unwrap_or_else(|_| "0123".repeat(16));
     let config = Config::default();
@@ -53,13 +70,33 @@ async fn main() -> std::io::Result<()> {
     };
     let _ = collection.insert_one(admin_user, None).await;
 
-    let auth_data = AppState {
-        mongo_db: client.clone(),
+    let auth_data = AuthState {
+        mongo_db: mongo_db_client.clone(),
         admin_user: Some(ObjectId::new()),
     };
+    let (ui_sender_channel, _) = broadcast::channel(32);
+    let app_state = web::Data::new(ProgramAppState {
+        // ntp,
+        mongo_db_client,
+        ui_sender_channel,
+    });
+
     HttpServer::new(move || {
+        // let cors = Cors::default()
+        //     .allow_any_origin()
+        //     .allowed_methods(["GET", "POST"])
+        //     .allowed_headers([http::header::AUTHORIZATION, http::header::ACCEPT])
+        //     .allowed_header(http::header::CONTENT_TYPE)
+        //     .max_age(3600);
+
         App::new()
-            .app_data(web::Data::new(client.clone()))
+            // .app_data(web::Data::new(client.clone()))
+            .app_data(app_state.clone()) //.clone()?
+            // .app_data(web::PayloadConfig::new(MAX_FRAME_SIZE))
+            // .app_data(web::JsonConfig::default().limit(MAX_FRAME_SIZE))
+            // .wrap(middleware::Compress::default())
+            // .wrap(middleware::Logger::default())
+            // .wrap(cors)
             .wrap(middleware::Logger::default())
             .service(controllers::authentication::authentication)
             .service(
@@ -71,6 +108,7 @@ async fn main() -> std::io::Result<()> {
                     .service(controllers::users::update_user)
                     .service(controllers::users::delete_user_by_id),
             )
+            .service(web::resource("/ws").route(web::get().to(websocket::handle_ws)))
     })
     .bind(("127.0.0.1", port))?
     .run()

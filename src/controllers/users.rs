@@ -3,20 +3,20 @@ use std::str::FromStr;
 use crate::{
     controllers::authentication::Authenticated,
     models::users::{self, User},
-    DB_NAME,
+    ProgramAppState, DB_NAME,
 };
 use actix_web::{delete, get, post, put, web, HttpResponse};
 use json;
 use mongodb::{
     bson::{self, doc},
-    Client, Collection,
+    Collection,
 };
 
 /// Adds a new user to the "users" collection in the database.
 #[post("/")]
 pub async fn create_user(
     auth: Authenticated,
-    client: web::Data<Client>,
+    app_state: web::Data<ProgramAppState>,
     body: web::Bytes,
 ) -> HttpResponse {
     log::debug!("auth: {auth:?}");
@@ -28,8 +28,10 @@ pub async fn create_user(
 
     match User::from_json_value(&user_in_json) {
         Some(user) => {
-            let collection: Collection<User> =
-                client.database(DB_NAME).collection(users::REPOSITORY_NAME);
+            let collection: Collection<User> = app_state
+                .mongo_db_client
+                .database(DB_NAME)
+                .collection(users::REPOSITORY_NAME);
             let result = collection.insert_one(user, None).await;
             match result {
                 Ok(_) => HttpResponse::Created().body(""),
@@ -47,15 +49,17 @@ pub async fn create_user(
 /// Gets the user with the supplied email.
 #[get("/{email}")]
 pub async fn get_user_by_email(
-    //app_data: AppState,
+    //app_data: ProgramAppState,
     auth: Authenticated,
-    client: web::Data<Client>,
+    app_state: web::Data<ProgramAppState>,
     email: web::Path<String>,
 ) -> HttpResponse {
     log::debug!("auth: {auth:?}");
     let email = email.into_inner();
-    let collection: Collection<users::User> =
-        client.database(DB_NAME).collection(users::REPOSITORY_NAME);
+    let collection: Collection<users::User> = app_state
+        .mongo_db_client
+        .database(DB_NAME)
+        .collection(users::REPOSITORY_NAME);
     match collection.find_one(doc! { "email": &email }, None).await {
         Ok(Some(user)) => HttpResponse::Ok().json(user.sanitize()),
         Ok(None) => HttpResponse::NotFound().body(format!("No user found with email {email}")),
@@ -67,7 +71,7 @@ pub async fn get_user_by_email(
 #[put("/{id}")]
 pub async fn update_user(
     auth: Authenticated,
-    client: web::Data<Client>,
+    app_state: web::Data<ProgramAppState>,
     id: web::Path<String>,
     body: web::Bytes,
 ) -> HttpResponse {
@@ -82,8 +86,10 @@ pub async fn update_user(
 
     match User::from_json_value(&user_in_json) {
         Some(new_user) => {
-            let collection: Collection<User> =
-                client.database(DB_NAME).collection(users::REPOSITORY_NAME);
+            let collection: Collection<User> = app_state
+                .mongo_db_client
+                .database(DB_NAME)
+                .collection(users::REPOSITORY_NAME);
 
             let old_user: User;
             let user_obj_id = mongodb::bson::oid::ObjectId::from_str(&user_id).unwrap();
@@ -121,14 +127,19 @@ pub async fn update_user(
 /// Deletes a user.
 #[delete("/{id}")]
 pub async fn delete_user_by_id(
-    client: web::Data<Client>,
+    app_state: web::Data<ProgramAppState>,
     id: web::Path<String>,
 ) -> HttpResponse {
     let id = id.into_inner();
     let user_obj_id = mongodb::bson::oid::ObjectId::from_str(&id).unwrap();
-    let collection: Collection<users::User> =
-        client.database(DB_NAME).collection(users::REPOSITORY_NAME);
-    match collection.delete_one(doc! { "_id": &user_obj_id }, None).await {
+    let collection: Collection<users::User> = app_state
+        .mongo_db_client
+        .database(DB_NAME)
+        .collection(users::REPOSITORY_NAME);
+    match collection
+        .delete_one(doc! { "_id": &user_obj_id }, None)
+        .await
+    {
         Ok(res) => HttpResponse::Ok().body(res.deleted_count.to_string()),
         Err(err) => HttpResponse::InternalServerError().body(err.to_string()),
     }

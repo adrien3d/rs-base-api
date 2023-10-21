@@ -1,6 +1,6 @@
 use crate::controllers::error::*;
 use crate::models::users::{self, User};
-use crate::DB_NAME;
+use crate::{ProgramAppState, DB_NAME};
 use actix_web::{
     dev::ServiceRequest,
     http::StatusCode,
@@ -11,11 +11,12 @@ use actix_web::{
 use jsonwebtoken::{decode, encode, Algorithm, DecodingKey, EncodingKey, Header, Validation};
 use mongodb::{
     bson::{doc, oid::ObjectId},
-    Client, Collection,
+    Collection,
 };
+
 use serde::{Deserialize, Serialize};
 
-use crate::controllers::error::Error::DatabaseError;
+use crate::controllers::error::Error::Database;
 use std::{
     future::{ready, Ready},
     rc::Rc,
@@ -31,7 +32,7 @@ pub struct TokenClaims {
 
 #[post("/auth")]
 pub(crate) async fn authentication(
-    client: web::Data<Client>,
+    app_state: web::Data<ProgramAppState>,
     req_body: web::Json<users::AuthReq>,
 ) -> impl Responder {
     //println!("{} {}", req_body.email, req_body.password);
@@ -41,8 +42,10 @@ pub(crate) async fn authentication(
     let iat = now.timestamp() as usize;
     let exp = (now + chrono::Duration::days(1)).timestamp() as usize;
 
-    let collection: Collection<users::User> =
-        client.database(DB_NAME).collection(users::REPOSITORY_NAME);
+    let collection: Collection<users::User> = app_state
+        .mongo_db_client
+        .database(DB_NAME)
+        .collection(users::REPOSITORY_NAME);
     match collection
         .find_one(doc! { "email": &req_body.email.to_string() }, None)
         .await
@@ -122,7 +125,7 @@ pub struct AuthenticationInfo {
 }*/
 
 #[derive(Clone, Debug)]
-pub struct AppState {
+pub struct AuthState {
     pub mongo_db: mongodb::Client,
     /// Temporary method of implementing admin user
     pub admin_user: Option<ObjectId>,
@@ -157,7 +160,7 @@ impl MaybeAuthenticated {
     }
 
     pub fn expect_authed(self) -> Result<Rc<AuthenticationInfo>, Error> {
-        self.0.ok_or(Error::AuthenticationError)
+        self.0.ok_or(Error::Authentication)
     }
 }
 
@@ -200,7 +203,7 @@ impl FromRequest for Authenticated {
             Some(v) => Ok(Authenticated(v)),
             None => {
                 log::error!("Empty Authenticated");
-                Err(Error::AuthenticationError)
+                Err(Error::Authentication)
             }
         };
         ready(result)
@@ -215,9 +218,9 @@ impl std::ops::Deref for Authenticated {
     }
 }
 
-impl AppState {
-    pub fn new(mongo_db_client: mongodb::Client) -> Result<AppState, Error> {
-        Ok(AppState {
+impl AuthState {
+    pub fn new(mongo_db_client: mongodb::Client) -> Result<AuthState, Error> {
+        Ok(AuthState {
             mongo_db: mongo_db_client,
             admin_user: envoption::optional("ADMIN_USER_ID")?,
         })
@@ -257,13 +260,13 @@ impl AppState {
                         // Function returned an error, handle the error
                         println!("Status code: {:?}", status);
                         println!("Error response: {:?}", error_response);
-                        Err(Error::AuthorizationError)
+                        Err(Error::Authorization)
                     }
                 }
             }
             None => {
                 log::info!("Spurious request for: {}", req.path());
-                Err(Error::AuthenticationError)
+                Err(Error::Authentication)
             }
         }
         // match identity {
@@ -300,10 +303,10 @@ impl AppState {
                 password: "".to_string(),
                 //created: user.created,
             }),
-            Ok(None) => Err(DatabaseError("User not found".to_string())),
+            Ok(None) => Err(Database("User not found".to_string())),
             Err(err) => {
                 log::error!("get_user_info err: {err}");
-                Err(DatabaseError(err.to_string()))
+                Err(Database(err.to_string()))
             }
         }
         // let mut conn = self.pg.acquire().await?;

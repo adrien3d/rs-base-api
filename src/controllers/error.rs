@@ -5,25 +5,25 @@ use thiserror::Error;
 #[derive(Debug, Error)]
 pub enum Error {
     #[error("Authentication failure")]
-    AuthenticationError,
+    Authentication,
 
     #[error("Unauthorized")]
-    AuthorizationError,
+    Authorization,
 
     //#[error("Password hasher error: {0}")]
     //PasswordHasherError(String),
     #[error("Environment variable error: {0}")]
-    EnvOptionError(String),
+    EnvOption(String),
 
     // #[error("DB Error")]
     // SqlError(#[from] sqlx::error::Error),
     #[error("DB error")]
-    DatabaseError(String),
+    Database(String),
 }
 
 impl<T: std::error::Error> From<EnvOptionError<T>> for Error {
     fn from(e: EnvOptionError<T>) -> Self {
-        Self::EnvOptionError(e.to_string())
+        Self::EnvOption(e.to_string())
     }
 }
 
@@ -34,8 +34,8 @@ impl actix_web::error::ResponseError for Error {
 
     fn status_code(&self) -> StatusCode {
         match self {
-            Error::AuthenticationError => StatusCode::UNAUTHORIZED,
-            Error::AuthorizationError => StatusCode::FORBIDDEN,
+            Error::Authentication => StatusCode::UNAUTHORIZED,
+            Error::Authorization => StatusCode::FORBIDDEN,
             _ => StatusCode::INTERNAL_SERVER_ERROR,
         }
     }
