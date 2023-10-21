@@ -52,7 +52,7 @@ pub(crate) async fn authentication(
     {
         Ok(Some(user)) => {
             let pwd_correct =
-                argon2::verify_encoded(user.password.as_str(), &req_body.password.as_bytes())
+                argon2::verify_encoded(user.password.as_str(), req_body.password.as_bytes())
                     .unwrap();
             log::debug!("pwd_correct: {pwd_correct}");
             if pwd_correct {
@@ -107,15 +107,15 @@ pub fn check_jwt(token: String) -> Result<TokenClaims, (StatusCode, Json<ErrorRe
         (StatusCode::UNAUTHORIZED, Json(json_error))
     })?
     .claims;
-    println!("claims: {:?}", claims);
+    //log::debug!("claims: {:?}", claims);
     Ok(claims)
 }
 
 #[derive(Debug, Clone)]
 pub struct AuthenticationInfo {
     // TODO later: Was an enum
-    user: User,
-    api_key: String,
+    _user: User,
+    _api_key: String,
 }
 
 /*impl AuthenticationInfo {
@@ -154,16 +154,6 @@ pub struct Permission {
 /// Extracts authentication information for routes that optionally require it.
 pub struct MaybeAuthenticated(Option<Rc<AuthenticationInfo>>);
 
-impl MaybeAuthenticated {
-    pub fn into_inner(self) -> Option<Rc<AuthenticationInfo>> {
-        self.0
-    }
-
-    pub fn expect_authed(self) -> Result<Rc<AuthenticationInfo>, Error> {
-        self.0.ok_or(Error::Authentication)
-    }
-}
-
 impl FromRequest for MaybeAuthenticated {
     type Error = Error;
     type Future = Ready<Result<Self, Self::Error>>;
@@ -187,12 +177,6 @@ impl std::ops::Deref for MaybeAuthenticated {
 #[derive(Debug)]
 pub struct Authenticated(Rc<AuthenticationInfo>);
 
-impl Authenticated {
-    pub fn into_inner(self) -> Rc<AuthenticationInfo> {
-        self.0
-    }
-}
-
 impl FromRequest for Authenticated {
     type Error = Error;
     type Future = Ready<Result<Self, Self::Error>>;
@@ -210,6 +194,12 @@ impl FromRequest for Authenticated {
     }
 }
 
+impl Authenticated {
+    pub fn get_user(&self) -> &User {
+        &self.0._user
+    }
+}
+
 impl std::ops::Deref for Authenticated {
     type Target = Rc<AuthenticationInfo>;
 
@@ -219,13 +209,6 @@ impl std::ops::Deref for Authenticated {
 }
 
 impl AuthState {
-    pub fn new(mongo_db_client: mongodb::Client) -> Result<AuthState, Error> {
-        Ok(AuthState {
-            mongo_db: mongo_db_client,
-            admin_user: envoption::optional("ADMIN_USER_ID")?,
-        })
-    }
-
     // Authenticate via cookie or API key, depending on what's provided.
     pub async fn authenticate(
         &self,
@@ -250,8 +233,8 @@ impl AuthState {
                         let req_user = self.get_user_info(token_claims.user_id).await?;
                         //log::debug!("req_user: {req_user:?}");
                         let user = AuthenticationInfo {
-                            user: req_user,
-                            api_key: "".to_string(),
+                            _user: req_user,
+                            _api_key: "".to_string(),
                         };
                         //log::debug!("user: {user:?}");
                         Ok(Some(user))

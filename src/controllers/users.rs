@@ -15,11 +15,11 @@ use mongodb::{
 /// Adds a new user to the "users" collection in the database.
 #[post("/")]
 pub async fn create_user(
-    auth: Authenticated,
+    _auth: Authenticated,
     app_state: web::Data<ProgramAppState>,
     body: web::Bytes,
 ) -> HttpResponse {
-    log::debug!("auth: {auth:?}");
+    //log::debug!("auth: {auth:?}");
     let json_parse_res = json::parse(std::str::from_utf8(&body).unwrap()); // return Result
     let user_in_json: json::JsonValue = match json_parse_res {
         Ok(v) => v,
@@ -54,7 +54,10 @@ pub async fn get_user_by_email(
     app_state: web::Data<ProgramAppState>,
     email: web::Path<String>,
 ) -> HttpResponse {
-    log::debug!("auth: {auth:?}");
+    //log::debug!("auth: {auth:?}");
+    let u = auth.get_user();
+    log::debug!("user: {u:?}");
+
     let email = email.into_inner();
     let collection: Collection<users::User> = app_state
         .mongo_db_client
@@ -70,12 +73,12 @@ pub async fn get_user_by_email(
 /// Updates a user.
 #[put("/{id}")]
 pub async fn update_user(
-    auth: Authenticated,
+    _auth: Authenticated,
     app_state: web::Data<ProgramAppState>,
     id: web::Path<String>,
     body: web::Bytes,
 ) -> HttpResponse {
-    log::debug!("auth: {auth:?}");
+    //log::debug!("auth: {auth:?}");
     let user_id = id.into_inner();
 
     let json_parse_res = json::parse(std::str::from_utf8(&body).unwrap()); // return Result
@@ -91,16 +94,16 @@ pub async fn update_user(
                 .database(DB_NAME)
                 .collection(users::REPOSITORY_NAME);
 
-            let old_user: User;
             let user_obj_id = mongodb::bson::oid::ObjectId::from_str(&user_id).unwrap();
-            match collection.find_one(doc! { "_id": user_obj_id }, None).await {
-                Ok(Some(user)) => old_user = user,
-                Ok(None) => old_user = new_user.clone(),
+            let old_user: User = match collection.find_one(doc! { "_id": user_obj_id }, None).await
+            {
+                Ok(Some(user)) => user,
+                Ok(None) => new_user.clone(),
                 Err(err) => {
                     log::error!("No user found with email while updating: {err}");
-                    old_user = new_user.clone()
+                    new_user.clone()
                 }
-            }
+            };
 
             let filter = doc! {"_id": &old_user.clone()._id};
             let mut new_user_copy = new_user.clone();
