@@ -2,15 +2,18 @@ mod configuration;
 mod controllers;
 mod middlewares;
 mod models;
+mod services;
 mod store;
 #[cfg(test)]
 mod test;
 mod websocket;
 
+use actix_cors::Cors;
 use actix_identity::IdentityMiddleware;
-use actix_web::{middleware, web, App, HttpServer};
+use actix_web::{http, middleware, web, App, HttpServer};
 use argon2::Config;
 use mongodb::{bson::oid::ObjectId, Client};
+use services::ntp::Ntp;
 use tokio::sync::broadcast;
 use tokio::sync::broadcast::Sender;
 
@@ -18,6 +21,7 @@ use crate::{
     controllers::authentication::AuthState,
     middlewares::authorization::AuthenticateMiddlewareFactory,
     models::users::{self, User},
+    services::ntp,
 };
 
 const DB_NAME: &str = "base-api";
@@ -27,7 +31,7 @@ pub const MAX_FRAME_SIZE: usize = 250_000_000; // 250Mb
 
 pub struct ProgramAppState {
     /// A Network Time Protocol used as a time source.
-    //pub ntp: Ntp,
+    pub ntp: Ntp,
     /// MongoDB client
     pub mongo_db_client: Client,
     /// A channel for messages to the UI.
@@ -35,8 +39,15 @@ pub struct ProgramAppState {
 }
 
 #[actix_web::main]
-async fn main() -> std::io::Result<()> {
+async fn main() -> anyhow::Result<()> {
     env_logger::init_from_env(env_logger::Env::new().default_filter_or("info"));
+
+    // Start NTP and define the timestamp format
+    let ntp = ntp::Ntp::new();
+    let instant: String = ntp
+        .current_time()
+        .to_rfc3339_opts(chrono::SecondsFormat::Secs, false);
+    log::info!("NTP Time is:{instant}");
 
     let uri = std::env::var("MONGODB_URI").unwrap_or_else(|_| "mongodb://localhost:27017".into());
     let port: u16 = std::env::var("PORT")
@@ -76,28 +87,28 @@ async fn main() -> std::io::Result<()> {
     };
     let (ui_sender_channel, _) = broadcast::channel(32);
     let app_state = web::Data::new(ProgramAppState {
-        // ntp,
+        ntp,
         mongo_db_client,
         ui_sender_channel,
     });
 
+    let time_thread = app_state.ntp.start_time_thread(app_state.clone());
+
     HttpServer::new(move || {
-        // let cors = Cors::default()
-        //     .allow_any_origin()
-        //     .allowed_methods(["GET", "POST"])
-        //     .allowed_headers([http::header::AUTHORIZATION, http::header::ACCEPT])
-        //     .allowed_header(http::header::CONTENT_TYPE)
-        //     .max_age(3600);
+        let cors = Cors::default()
+            .allow_any_origin()
+            .allowed_methods(["DELETE", "GET", "POST", "PUT"])
+            .allowed_headers([http::header::AUTHORIZATION, http::header::ACCEPT])
+            .allowed_header(http::header::CONTENT_TYPE)
+            .max_age(3600);
 
         App::new()
-            // .app_data(web::Data::new(client.clone()))
-            .app_data(app_state.clone()) //.clone()?
-            // .app_data(web::PayloadConfig::new(MAX_FRAME_SIZE))
-            // .app_data(web::JsonConfig::default().limit(MAX_FRAME_SIZE))
-            // .wrap(middleware::Compress::default())
-            // .wrap(middleware::Logger::default())
-            // .wrap(cors)
+            .app_data(app_state.clone())
+            .app_data(web::PayloadConfig::new(MAX_FRAME_SIZE))
+            .app_data(web::JsonConfig::default().limit(MAX_FRAME_SIZE))
+            .wrap(middleware::Compress::default())
             .wrap(middleware::Logger::default())
+            .wrap(cors)
             .service(controllers::authentication::authentication)
             .service(
                 web::scope("/users")
@@ -112,5 +123,11 @@ async fn main() -> std::io::Result<()> {
     })
     .bind(("127.0.0.1", port))?
     .run()
-    .await
+    .await?;
+
+    if let Err(error) = time_thread.stop().join() {
+        log::error!("Failed to stop time thread: {error:?}");
+    }
+
+    Ok(())
 }

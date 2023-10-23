@@ -30,11 +30,17 @@ mongodb = "2.6.0"
 num_enum = "0.7.0"
 pretty_env_logger = "0.5.0"
 rc = "0.1.1"
+rsntp = "3.0.2"
 rust-argon2 = "1.0.0"
 serde = { version = "1.0.166", features = ["derive"] }
 smallvec = "1.10.0"
+stoppable_thread = "0.2.1"
 strum = "0.25.0"
 strum_macros = "0.25.3"
 thiserror = "1.0.40"
 tokio = "1.33.0"
 tracing = "0.1.37"
+
+[dev-dependencies]
+env_logger = "~0.10"
+test-log = "~0.2"
