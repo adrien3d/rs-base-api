@@ -1,4 +1,4 @@
-use crate::controllers::authentication::{AppState, AuthenticationInfo};
+use crate::controllers::authentication::{AuthState, AuthenticationInfo};
 
 use std::rc::Rc;
 
@@ -13,11 +13,11 @@ use futures::{
 };
 
 pub struct AuthenticateMiddlewareFactory {
-    auth_data: Rc<AppState>,
+    auth_data: Rc<AuthState>,
 }
 
 impl AuthenticateMiddlewareFactory {
-    pub fn new(auth_data: AppState) -> Self {
+    pub fn new(auth_data: AuthState) -> Self {
         AuthenticateMiddlewareFactory {
             auth_data: Rc::new(auth_data),
         }
@@ -47,7 +47,7 @@ where
 }
 
 pub struct AuthenticateMiddleware<S> {
-    auth_data: Rc<AppState>,
+    auth_data: Rc<AuthState>,
     service: Rc<S>,
 }
 

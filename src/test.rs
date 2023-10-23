@@ -4,6 +4,8 @@ use actix_web::{
 };
 use mongodb::Client;
 
+use crate::controllers::users::{create_user, get_user_by_email};
+
 use super::*;
 
 #[actix_web::test]
@@ -16,7 +18,7 @@ async fn test() {
     // Clear any data currently in the users collection.
     client
         .database(DB_NAME)
-        .collection::<User>(COLL_NAME)
+        .collection::<User>(users::REPOSITORY_NAME)
         .drop(None)
         .await
         .expect("drop collection should succeed");
@@ -30,9 +32,13 @@ async fn test() {
     .await;
 
     let user = User {
+        _id: ObjectId::new(),
         first_name: "Jane".into(),
         last_name: "Doe".into(),
         email: "example@example.com".into(),
+        role: "".to_string(),
+        org_id: Some(ObjectId::new()),
+        password: "".to_string(),
     };
 
     let req = TestRequest::post()

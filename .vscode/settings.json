@@ -1,4 +1,5 @@
 {
+    "peacock.remoteColor": "#dc322f",
     "rust-analyzer.linkedProjects": [
         "./Cargo.toml"
     ]
