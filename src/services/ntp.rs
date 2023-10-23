@@ -15,6 +15,12 @@ pub struct Ntp {
     local_time_offset: Mutex<chrono::Duration>,
 }
 
+impl Default for Ntp {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Ntp {
     /// This will create a new updated instance of NTP, which will block.
     pub fn new() -> Self {
