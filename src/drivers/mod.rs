@@ -1,9 +1,12 @@
 use anyhow::bail;
 use async_trait::async_trait;
-use mongodb::{Client as mgoClient, Collection, error::{ErrorKind, WriteError}};
+use mongodb::{
+    error::{ErrorKind, WriteError},
+    Client as mgoClient, Collection,
+};
 use sqlx::postgres::PgPool;
 
-use crate::models::users::{User, self};
+use crate::models::users::{self, User};
 
 const DB_NAME: &str = "base-api";
 
@@ -27,7 +30,6 @@ pub struct PostgreDatabase {
     status: GenericDatabaseStatus,
     client: PgPool,
 }
-
 
 #[async_trait]
 pub trait GenericDatabase {
@@ -68,11 +70,11 @@ impl MongoDatabase {
                 match collection.insert_one(user, None).await {
                     Ok(_) => Ok(self),
                     Err(error) => {
-                        let e =  *error.kind;
+                        let e = *error.kind;
                         bail!("seed_user insert error: {}", e);
                     }
                 }
-            },
+            }
             None => bail!("seed_user unable to get client"),
         }
     }
@@ -95,7 +97,7 @@ impl GenericDatabase for MongoDatabase {
         }
     }
 
-    async fn connect(&mut self, uri: &str) -> anyhow::Result<&Self>{
+    async fn connect(&mut self, uri: &str) -> anyhow::Result<&Self> {
         log::info!("Connecting to MongoDB with uri:{uri}");
         let mongo_db_client = mgoClient::with_uri_str(uri).await?;
         self.client = Some(mongo_db_client);

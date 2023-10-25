@@ -54,33 +54,31 @@ async fn main() -> anyhow::Result<()> {
     log::info!("NTP Time is:{instant}");
 
     let uri = std::env::var("MONGODB_URI").unwrap_or_else(|_| "mongodb://localhost:27017".into());
-    
+
     log::info!("Connecting to MongoDB");
     //let mongo_db_client = Client::with_uri_str(uri.clone()).await.expect("failed to connect mongo from main");
-    
+
     let mut mongo_db: MongoDatabase = GenericDatabase::new(); //::new_with_client(&mongo_db_client);
     let mongo_db_client: Client;
-    //let res = mongo_db.connect(&uri.clone()).await; 
+    //let res = mongo_db.connect(&uri.clone()).await;
     match mongo_db.connect(&uri.clone()).await {
         Ok(mongodb) => {
             log::info!("successfully connected mongo with drivers");
             match &mongodb.client {
-                Some(cl) => {
-                    mongo_db_client = cl.clone()
-                },
+                Some(cl) => mongo_db_client = cl.clone(),
                 None => {
                     anyhow::bail!("Failed to get mongo.client")
-                },
+                }
             }
-        },
+        }
         Err(error) => {
             anyhow::bail!("Failed to connect mongo with drivers: {:?}", error)
-        },
+        }
     }
     models::users::create_email_index(&mongo_db_client, DB_NAME).await;
 
     let salt = std::env::var("SECRET_KEY").unwrap_or_else(|_| "0123".repeat(16));
-    
+
     let hashed_password =
         argon2::hash_encoded("password".as_bytes(), salt.as_bytes(), &Config::original()).unwrap();
     let admin_user = User {
