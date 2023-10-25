@@ -66,10 +66,9 @@ async fn main() -> anyhow::Result<()> {
         .collection(users::REPOSITORY_NAME);
 
     let salt = std::env::var("SECRET_KEY").unwrap_or_else(|_| "0123".repeat(16));
-    let config = Config::default();
+    
     let hashed_password =
-        argon2::hash_encoded("password".as_bytes(), salt.as_bytes(), &config).unwrap();
-
+        argon2::hash_encoded("password".as_bytes(), salt.as_bytes(), &Config::original()).unwrap();
     let admin_user = User {
         _id: ObjectId::new(),
         first_name: "Adrien".to_string(),
