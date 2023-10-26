@@ -70,8 +70,20 @@ impl MongoDatabase {
                 match collection.insert_one(user, None).await {
                     Ok(_) => Ok(self),
                     Err(error) => {
-                        let e = *error.kind;
-                        bail!("seed_user insert error: {}", e);
+                        match *error.kind {
+                            ErrorKind::Write(write_error) => {
+                                match write_error {
+                                mongodb::error::WriteFailure::WriteError(e) => {
+                                    if e.code != 11000 {
+                                        log::warn!("seed_user WriteFailure::WriteError: {e:?}");
+                                    }
+                                },
+                                _ => bail!("Unknown writeConcernError while seed_user: {write_error:?}"),
+                            }
+                                Ok(self)
+                            }
+                            _ => bail!("Unknown errorKind while seed_user: {error}"),
+                        }
                     }
                 }
             }
