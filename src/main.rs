@@ -22,7 +22,7 @@ use crate::{
     controllers::authentication::AuthState,
     drivers::{GenericDatabase, MongoDatabase},
     middlewares::authorization::AuthenticateMiddlewareFactory,
-    models::users::{self, User},
+    models::users::User,
     services::ntp,
 };
 
@@ -93,8 +93,6 @@ async fn main() -> anyhow::Result<()> {
 
     mongo_db.seed_user(admin_user).await?;
 
-    //let _ = collection.insert_one(admin_user, None).await;
-
     let auth_data = AuthState {
         mongo_db: mongo_db_client.clone(),
         admin_user: Some(ObjectId::new()),
@@ -114,7 +112,7 @@ async fn main() -> anyhow::Result<()> {
         ui_sender_channel,
     });
 
-    //let time_thread = app_state.ntp.start_time_thread(app_state.clone());
+    let time_thread = app_state.ntp.start_time_thread(app_state.clone());
 
     let port: u16 = std::env::var("PORT")
         .unwrap_or_else(|_| "8080".into())
@@ -153,9 +151,9 @@ async fn main() -> anyhow::Result<()> {
     .run()
     .await?;
 
-    // if let Err(error) = time_thread.stop().join() {
-    //     log::error!("Failed to stop time thread: {error:?}");
-    // }
+    if let Err(error) = time_thread.stop().join() {
+        log::error!("Failed to stop time thread: {error:?}");
+    }
 
     Ok(())
 }

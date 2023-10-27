@@ -1,10 +1,7 @@
 use anyhow::bail;
 use async_trait::async_trait;
-use mongodb::{
-    error::{ErrorKind, WriteError},
-    Client as mgoClient, Collection,
-};
-use sqlx::postgres::PgPool;
+use mongodb::{error::ErrorKind, Client as mgoClient};
+// use sqlx::postgres::PgPool;
 
 use crate::models::users::{self, User};
 
@@ -26,10 +23,10 @@ pub struct MongoDatabase {
     pub client: Option<mgoClient>,
 }
 
-pub struct PostgreDatabase {
-    status: GenericDatabaseStatus,
-    client: PgPool,
-}
+// pub struct PostgreDatabase {
+//     status: GenericDatabaseStatus,
+//     client: PgPool,
+// }
 
 #[async_trait]
 pub trait GenericDatabase {
@@ -42,16 +39,16 @@ impl MongoDatabase {
     // pub fn new_with_client(&mut self, db_client: &mgoClient) {
     //     self.client = db_client.clone();
     // }
-    fn new() -> Self {
-        MongoDatabase {
-            status: GenericDatabaseStatus {
-                kind: "mongo".to_string(),
-                is_connected: false,
-                migrations_performed: false,
-            },
-            client: None,
-        }
-    }
+    // fn new() -> Self {
+    //     MongoDatabase {
+    //         status: GenericDatabaseStatus {
+    //             kind: "mongo".to_string(),
+    //             is_connected: false,
+    //             migrations_performed: false,
+    //         },
+    //         client: None,
+    //     }
+    // }
     // pub fn new_with_client(db_client: &mgoClient) -> Self {
     //     MongoDatabase {
     //         status: GenericDatabaseStatus {
@@ -91,9 +88,9 @@ impl MongoDatabase {
         }
     }
 
-    pub fn aggregate(&self) {
-        log::info!("MongoDatabase aggregate");
-    }
+    // pub fn aggregate(&self) {
+    //     log::info!("MongoDatabase aggregate");
+    // }
 }
 
 #[async_trait]
@@ -118,7 +115,7 @@ impl GenericDatabase for MongoDatabase {
         Ok(self)
     }
 
-    fn migrate(&self, reference: &str) -> Self {
+    fn migrate(&self, _reference: &str) -> Self {
         todo!()
     }
 }
