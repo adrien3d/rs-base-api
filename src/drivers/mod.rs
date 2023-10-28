@@ -36,30 +36,6 @@ pub trait GenericDatabase {
 }
 
 impl MongoDatabase {
-    // pub fn new_with_client(&mut self, db_client: &mgoClient) {
-    //     self.client = db_client.clone();
-    // }
-    // fn new() -> Self {
-    //     MongoDatabase {
-    //         status: GenericDatabaseStatus {
-    //             kind: "mongo".to_string(),
-    //             is_connected: false,
-    //             migrations_performed: false,
-    //         },
-    //         client: None,
-    //     }
-    // }
-    // pub fn new_with_client(db_client: &mgoClient) -> Self {
-    //     MongoDatabase {
-    //         status: GenericDatabaseStatus {
-    //             kind: "mongo".to_string(),
-    //             is_connected: true,
-    //             migrations_performed: false,
-    //         },
-    //         client: Some(db_client.clone()),
-    //     }
-    // }
-
     pub async fn seed_user(&self, user: User) -> anyhow::Result<&Self> {
         match &self.client {
             Some(client) => {
