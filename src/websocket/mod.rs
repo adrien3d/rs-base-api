@@ -9,7 +9,6 @@ use bson::Document;
 use futures::Stream;
 use num_enum::{IntoPrimitive, TryFromPrimitive};
 use std::time::{Duration, Instant};
-use strum_macros::EnumIter;
 
 use crate::{ProgramAppState, MAX_FRAME_SIZE};
 
@@ -19,7 +18,7 @@ const CLIENT_TIMEOUT: Duration = Duration::from_secs(10);
 pub const HEARTBEAT_INTERVAL: Duration = Duration::from_secs(5);
 
 #[repr(u8)]
-#[derive(Debug, IntoPrimitive, TryFromPrimitive, PartialEq, Eq, Clone, Copy, EnumIter)]
+#[derive(Debug, IntoPrimitive, TryFromPrimitive, PartialEq, Eq, Clone, Copy)]
 /// The kind of an incoming request via the websocket.
 pub enum RequestId {
     BasicCommand = 0,
