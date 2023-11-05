@@ -1,3 +1,4 @@
+use crate::services::emails;
 use anyhow::bail;
 use async_trait::async_trait;
 use mongodb::{error::ErrorKind, Client as mgoClient};
@@ -40,8 +41,12 @@ impl MongoDatabase {
         match &self.client {
             Some(client) => {
                 let collection = client.database(DB_NAME).collection(users::REPOSITORY_NAME);
-                match collection.insert_one(user, None).await {
-                    Ok(_) => Ok(self),
+                match collection.insert_one(user.clone(), None).await {
+                    Ok(_) => {
+                        let _ = emails::send_email_with_aws_ses(&user.email, "Welcome", "Message")
+                            .await;
+                        Ok(self)
+                    }
                     Err(error) => {
                         match *error.kind {
                             ErrorKind::Write(write_error) => {

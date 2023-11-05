@@ -13,6 +13,8 @@ actix-identity = "0.6.0"
 actix-service = "2.0.2"
 actix-web = "4.3.1"
 actix-web-actors = "4.2.0"
+aws-config = "0.56.1"
+aws-sdk-sesv2 = "0.34.0"
 anyhow = "1.0.71"
 async-stream = "0.3.5"
 async-trait = "0.1.74"
@@ -35,7 +37,7 @@ serde = { version = "1.0.166", features = ["derive"] }
 sqlx = { version = "0.7", features = [ "runtime-tokio", "tls-native-tls", "postgres" ] }
 stoppable_thread = "0.2.1"
 thiserror = "1.0.40"
-tokio = "1.33.0"
+tokio = { version = "1.33.0", features = ["full"] }
 
 [dev-dependencies]
 env_logger = "~0.10"
