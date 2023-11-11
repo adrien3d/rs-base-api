@@ -4,7 +4,10 @@ use actix_web::{
 };
 use mongodb::Client;
 
-use crate::controllers::users::{create_user, get_user_by_email};
+use crate::{
+    controllers::users::{create_user, get_user_by_email},
+    models::users,
+};
 
 use super::*;
 
