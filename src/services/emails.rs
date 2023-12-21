@@ -1,3 +1,4 @@
+use aws_config::BehaviorVersion;
 use aws_sdk_sesv2::types::{Body, Content, Destination, EmailContent, Message};
 
 pub async fn send_email_with_aws_ses(
@@ -5,7 +6,7 @@ pub async fn send_email_with_aws_ses(
     subject: &str,
     message: &str,
 ) -> anyhow::Result<()> {
-    let config = aws_config::load_from_env().await;
+    let config = aws_config::load_defaults(BehaviorVersion::latest()).await;
     let client = aws_sdk_sesv2::Client::new(&config);
 
     let mut destination: Destination = Destination::builder().build();
