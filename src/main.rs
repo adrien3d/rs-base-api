@@ -81,6 +81,7 @@ async fn main() -> anyhow::Result<()> {
 
     let hashed_password =
         argon2::hash_encoded("password".as_bytes(), salt.as_bytes(), &Config::original()).unwrap();
+    // TODO: Get seed from env file
     let admin_user = User {
         _id: ObjectId::new(),
         first_name: "Adrien".to_string(),

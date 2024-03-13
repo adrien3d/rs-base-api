@@ -36,7 +36,7 @@ pub(crate) async fn authentication(
     req_body: web::Json<users::AuthReq>,
 ) -> impl Responder {
     //println!("{} {}", req_body.email, req_body.password);
-    let secret_key = "supersecret"; //std::env::var("RSA_KEY");
+    let secret_key = "supersecret"; //TODO: std::env::var("RSA_KEY");
 
     let now = chrono::Utc::now();
     let iat = now.timestamp() as usize;
@@ -92,7 +92,7 @@ pub struct ErrorResponse {
 }
 
 pub fn check_jwt(token: String) -> Result<TokenClaims, (StatusCode, Json<ErrorResponse>)> {
-    let secret_key = "supersecret"; //std::env::var("RSA_KEY");
+    let secret_key = "supersecret"; //TODO: std::env::var("RSA_KEY");
 
     let claims = decode::<TokenClaims>(
         &token,
