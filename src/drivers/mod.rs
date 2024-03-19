@@ -1,15 +1,19 @@
 use crate::services::emails;
 use anyhow::bail;
 use async_trait::async_trait;
+use lazy_static::lazy_static;
 use mongodb::{error::ErrorKind, Client as mgoClient};
 // use sqlx::postgres::PgPool;
 
 use crate::models::users::{self, User};
 
-const DB_NAME: &str = "base-api";
-
 pub mod mongo;
 pub mod postgre;
+
+lazy_static! {
+    static ref DATABASE_NAME: String =
+        std::env::var("DATABASE_NAME").unwrap_or_else(|_| "base-api".into());
+}
 
 #[derive(Debug)]
 pub struct GenericDatabaseStatus {
@@ -40,7 +44,9 @@ impl MongoDatabase {
     pub async fn seed_user(&self, user: User) -> anyhow::Result<&Self> {
         match &self.client {
             Some(client) => {
-                let collection = client.database(DB_NAME).collection(users::REPOSITORY_NAME);
+                let collection = client
+                    .database(&DATABASE_NAME)
+                    .collection(users::REPOSITORY_NAME);
                 match collection.insert_one(user.clone(), None).await {
                     Ok(_) => {
                         let _ = emails::send_email_with_aws_ses(&user.email, "Welcome", "Message")

@@ -13,6 +13,8 @@ use actix_cors::Cors;
 use actix_identity::IdentityMiddleware;
 use actix_web::{http, middleware, web, App, HttpServer};
 use argon2::Config;
+use dotenv::dotenv;
+use lazy_static::lazy_static;
 use mongodb::{bson::oid::ObjectId, Client};
 use services::ntp::Ntp;
 use tokio::sync::broadcast;
@@ -26,7 +28,12 @@ use crate::{
     services::ntp,
 };
 
-const DB_NAME: &str = "base-api";
+lazy_static! {
+    static ref MONGODB_URI: String =
+        std::env::var("MONGODB_URI").unwrap_or_else(|_| "mongodb://localhost:27017".into());
+    static ref DATABASE_NAME: String =
+        std::env::var("DATABASE_NAME").unwrap_or_else(|_| "base-api".into());
+}
 
 /// The maximum size of a package the server will accept.
 pub const MAX_FRAME_SIZE: usize = 250_000_000; // 250Mb
@@ -44,6 +51,7 @@ pub struct ProgramAppState {
 
 #[actix_web::main]
 async fn main() -> anyhow::Result<()> {
+    dotenv().ok();
     env_logger::init_from_env(env_logger::Env::new().default_filter_or("info"));
 
     // Start NTP and define the timestamp format
@@ -75,9 +83,9 @@ async fn main() -> anyhow::Result<()> {
             anyhow::bail!("Failed to connect mongo with drivers: {:?}", error)
         }
     }
-    models::users::create_email_index(&mongo_db_client, DB_NAME).await;
+    models::users::create_email_index(&mongo_db_client, &DATABASE_NAME).await;
 
-    let salt = std::env::var("SECRET_KEY").unwrap_or_else(|_| "0123".repeat(16));
+    let salt = &std::env::var("SECRET_KEY").unwrap_or_else(|_| "thisisasupersecretkey".into());
 
     let hashed_password =
         argon2::hash_encoded("password".as_bytes(), salt.as_bytes(), &Config::original()).unwrap();
@@ -115,7 +123,7 @@ async fn main() -> anyhow::Result<()> {
 
     let time_thread = app_state.ntp.start_time_thread(app_state.clone());
 
-    let port: u16 = std::env::var("PORT")
+    let port: u16 = std::env::var("SERVER_PORT")
         .unwrap_or_else(|_| "8080".into())
         .parse()
         .unwrap();

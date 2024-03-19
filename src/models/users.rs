@@ -84,10 +84,13 @@ impl User {
                     }
                 }
             }
-            None => log::warn!("No organization id for: {email}"),
+            None => {
+                log::warn!("No organization id for: {email}");
+                return None;
+            }
         }
 
-        let salt = std::env::var("SECRET_KEY").unwrap_or_else(|_| "0123".repeat(16));
+        let salt = &std::env::var("SECRET_KEY").unwrap_or_else(|_| "thisisasupersecretkey".into());
         let config = Config::default();
         let hashed_password =
             argon2::hash_encoded(password.as_bytes(), salt.as_bytes(), &config).unwrap();
