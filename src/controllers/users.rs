@@ -3,7 +3,7 @@ use std::str::FromStr;
 use crate::{
     controllers::authentication::Authenticated,
     models::users::{self, User},
-    ProgramAppState, MONGODB_URI,
+    ProgramAppState, DATABASE_NAME,
 };
 use actix_web::{delete, get, post, put, web, HttpResponse};
 use json;
@@ -30,7 +30,7 @@ pub async fn create_user(
         Some(user) => {
             let collection: Collection<User> = app_state
                 .mongo_db_client
-                .database(&MONGODB_URI)
+                .database(&DATABASE_NAME)
                 .collection(users::REPOSITORY_NAME);
             let result = collection.insert_one(user, None).await;
             match result {
@@ -61,7 +61,7 @@ pub async fn get_user_by_email(
     let email = email.into_inner();
     let collection: Collection<users::User> = app_state
         .mongo_db_client
-        .database(&MONGODB_URI)
+        .database(&DATABASE_NAME)
         .collection(users::REPOSITORY_NAME);
     match collection.find_one(doc! { "email": &email }, None).await {
         Ok(Some(user)) => HttpResponse::Ok().json(user.sanitize()),
@@ -91,7 +91,7 @@ pub async fn update_user(
         Some(new_user) => {
             let collection: Collection<User> = app_state
                 .mongo_db_client
-                .database(&MONGODB_URI)
+                .database(&DATABASE_NAME)
                 .collection(users::REPOSITORY_NAME);
 
             let user_obj_id = mongodb::bson::oid::ObjectId::from_str(&user_id).unwrap();
@@ -137,7 +137,7 @@ pub async fn delete_user_by_id(
     let user_obj_id = mongodb::bson::oid::ObjectId::from_str(&id).unwrap();
     let collection: Collection<users::User> = app_state
         .mongo_db_client
-        .database(&MONGODB_URI)
+        .database(&DATABASE_NAME)
         .collection(users::REPOSITORY_NAME);
     match collection
         .delete_one(doc! { "_id": &user_obj_id }, None)

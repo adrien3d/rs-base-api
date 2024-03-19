@@ -11,7 +11,8 @@ pub mod mongo;
 pub mod postgre;
 
 lazy_static! {
-    static ref DB_NAME: String = std::env::var("DATABASE_NAME").unwrap_or_else(|_| "mongodb://localhost:27017".into());
+    static ref DATABASE_NAME: String =
+        std::env::var("DATABASE_NAME").unwrap_or_else(|_| "base-api".into());
 }
 
 #[derive(Debug)]
@@ -43,7 +44,9 @@ impl MongoDatabase {
     pub async fn seed_user(&self, user: User) -> anyhow::Result<&Self> {
         match &self.client {
             Some(client) => {
-                let collection = client.database(&DB_NAME).collection(users::REPOSITORY_NAME);
+                let collection = client
+                    .database(&DATABASE_NAME)
+                    .collection(users::REPOSITORY_NAME);
                 match collection.insert_one(user.clone(), None).await {
                     Ok(_) => {
                         let _ = emails::send_email_with_aws_ses(&user.email, "Welcome", "Message")

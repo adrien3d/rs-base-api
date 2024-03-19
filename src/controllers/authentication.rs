@@ -1,6 +1,6 @@
 use crate::controllers::error::*;
 use crate::models::users::{self, User};
-use crate::{ProgramAppState, MONGODB_URI};
+use crate::{ProgramAppState, DATABASE_NAME};
 use actix_web::{
     dev::ServiceRequest,
     http::StatusCode,
@@ -36,15 +36,15 @@ pub(crate) async fn authentication(
     req_body: web::Json<users::AuthReq>,
 ) -> impl Responder {
     //println!("{} {}", req_body.email, req_body.password);
-    let secret_key = &std::env::var("RSA_KEY").unwrap_or_else(|_| "thisisanothersupersecretkey".into());
+    let secret_key =
+        &std::env::var("RSA_KEY").unwrap_or_else(|_| "thisisanothersupersecretkey".into());
 
     let now = chrono::Utc::now();
     let iat = now.timestamp() as usize;
     let exp = (now + chrono::Duration::days(1)).timestamp() as usize;
-
     let collection: Collection<users::User> = app_state
         .mongo_db_client
-        .database(&MONGODB_URI)
+        .database(&DATABASE_NAME)
         .collection(users::REPOSITORY_NAME);
     match collection
         .find_one(doc! { "email": &req_body.email.to_string() }, None)
@@ -92,7 +92,8 @@ pub struct ErrorResponse {
 }
 
 pub fn check_jwt(token: String) -> Result<TokenClaims, (StatusCode, Json<ErrorResponse>)> {
-    let secret_key =  &std::env::var("RSA_KEY").unwrap_or_else(|_| "thisisanothersupersecretkey".into());
+    let secret_key =
+        &std::env::var("RSA_KEY").unwrap_or_else(|_| "thisisanothersupersecretkey".into());
 
     let claims = decode::<TokenClaims>(
         &token,
@@ -269,7 +270,7 @@ impl AuthState {
     async fn get_user_info(&self, user_id: String) -> Result<User, Error> {
         let collection: Collection<users::User> = self
             .mongo_db
-            .database(&MONGODB_URI)
+            .database(&DATABASE_NAME)
             .collection(users::REPOSITORY_NAME);
         let user_object_id = ObjectId::parse_str(user_id).unwrap();
         match collection
