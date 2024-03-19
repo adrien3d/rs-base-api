@@ -1,6 +1,5 @@
 {
-    "peacock.remoteColor": "#dc322f",
-    "rust-analyzer.linkedProjects": [
-        "./Cargo.toml"
-    ]
+  "peacock.remoteColor": "#dc322f",
+  "rust-analyzer.linkedProjects": ["./Cargo.toml"],
+  "cSpell.words": ["thisisanothersupersecretkey"]
 }

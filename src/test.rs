@@ -20,7 +20,7 @@ async fn test() {
 
     // Clear any data currently in the users collection.
     client
-        .database(DB_NAME)
+        .database(&MONGODB_URI)
         .collection::<User>(users::REPOSITORY_NAME)
         .drop(None)
         .await
