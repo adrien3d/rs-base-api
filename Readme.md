@@ -6,6 +6,7 @@ As of today, it provides basic user management routes and communicates with Mong
 ```shell
 cp .env-sample .env
 # Edit .env file according to your setup
+cargo run
 ```
 
 # Roadmap
