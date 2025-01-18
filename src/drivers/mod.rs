@@ -47,7 +47,7 @@ impl MongoDatabase {
                 let collection = client
                     .database(&DATABASE_NAME)
                     .collection(users::REPOSITORY_NAME);
-                match collection.insert_one(user.clone(), None).await {
+                match collection.insert_one(user.clone()).await {
                     Ok(_) => {
                         let _ = emails::send_email_with_aws_ses(&user.email, "Welcome", "Message")
                             .await;

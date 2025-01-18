@@ -117,7 +117,7 @@ pub async fn create_email_index(client: &Client, db_name: &str) {
     client
         .database(db_name)
         .collection::<User>(REPOSITORY_NAME)
-        .create_index(model, None)
+        .create_index(model)
         .await
         .expect("creating an index should succeed");
 }
