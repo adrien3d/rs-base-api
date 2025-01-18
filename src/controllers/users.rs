@@ -32,7 +32,7 @@ pub async fn create_user(
                 .mongo_db_client
                 .database(&DATABASE_NAME)
                 .collection(users::REPOSITORY_NAME);
-            let result = collection.insert_one(user, None).await;
+            let result = collection.insert_one(user).await;
             match result {
                 Ok(_) => HttpResponse::Created().body(""),
                 Err(err) => {
@@ -63,7 +63,7 @@ pub async fn get_user_by_email(
         .mongo_db_client
         .database(&DATABASE_NAME)
         .collection(users::REPOSITORY_NAME);
-    match collection.find_one(doc! { "email": &email }, None).await {
+    match collection.find_one(doc! { "email": &email }).await {
         Ok(Some(user)) => HttpResponse::Ok().json(user.sanitize()),
         Ok(None) => HttpResponse::NotFound().body(format!("No user found with email {email}")),
         Err(err) => HttpResponse::InternalServerError().body(err.to_string()),
@@ -95,8 +95,7 @@ pub async fn update_user(
                 .collection(users::REPOSITORY_NAME);
 
             let user_obj_id = mongodb::bson::oid::ObjectId::from_str(&user_id).unwrap();
-            let old_user: User = match collection.find_one(doc! { "_id": user_obj_id }, None).await
-            {
+            let old_user: User = match collection.find_one(doc! { "_id": user_obj_id }).await {
                 Ok(Some(user)) => user,
                 Ok(None) => new_user.clone(),
                 Err(err) => {
@@ -113,7 +112,7 @@ pub async fn update_user(
             let update = doc! {"$set": new_user_bson };
 
             //let update = doc! {"$set": {"first_name": new_user_copy.first_name}};
-            let result = collection.update_one(filter, update, None).await;
+            let result = collection.update_one(filter, update).await;
             match result {
                 Ok(_) => HttpResponse::Ok().json(new_user),
                 Err(err) => {
@@ -139,10 +138,7 @@ pub async fn delete_user_by_id(
         .mongo_db_client
         .database(&DATABASE_NAME)
         .collection(users::REPOSITORY_NAME);
-    match collection
-        .delete_one(doc! { "_id": &user_obj_id }, None)
-        .await
-    {
+    match collection.delete_one(doc! { "_id": &user_obj_id }).await {
         Ok(res) => HttpResponse::Ok().body(res.deleted_count.to_string()),
         Err(err) => HttpResponse::InternalServerError().body(err.to_string()),
     }

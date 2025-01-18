@@ -47,7 +47,7 @@ pub(crate) async fn authentication(
         .database(&DATABASE_NAME)
         .collection(users::REPOSITORY_NAME);
     match collection
-        .find_one(doc! { "email": &req_body.email.to_string() }, None)
+        .find_one(doc! { "email": &req_body.email.to_string() })
         .await
     {
         Ok(Some(user)) => {
@@ -273,10 +273,7 @@ impl AuthState {
             .database(&DATABASE_NAME)
             .collection(users::REPOSITORY_NAME);
         let user_object_id = ObjectId::parse_str(user_id).unwrap();
-        match collection
-            .find_one(doc! { "_id": &user_object_id }, None)
-            .await
-        {
+        match collection.find_one(doc! { "_id": &user_object_id }).await {
             Ok(Some(user)) => Ok(User {
                 _id: user._id,
                 first_name: user.first_name,
