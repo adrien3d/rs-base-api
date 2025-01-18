@@ -1,6 +1,8 @@
+use anyhow::Ok;
 use aws_config::BehaviorVersion;
 use aws_sdk_sesv2::types::{Body, Content, Destination, EmailContent, Message};
 
+// https://github.com/awslabs/aws-sdk-rust/blob/main/examples/examples/ses/src/bin/send-email.rs
 pub async fn send_email_with_aws_ses(
     dest: &str,
     subject: &str,
@@ -38,5 +40,14 @@ pub async fn send_email_with_aws_ses(
         .send()
         .await?;
 
+    Ok(())
+}
+
+// https://www.scaleway.com/en/developers/api/transactional-email/
+pub async fn send_email_with_scw_api(
+    dest: &str,
+    subject: &str,
+    message: &str,
+) -> anyhow::Result<()> {
     Ok(())
 }
