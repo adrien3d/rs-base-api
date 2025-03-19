@@ -107,7 +107,7 @@ impl Ntp {
 #[cfg(test)]
 mod tests {
     use crate::ntp::Ntp;
-    use chrono::{Duration, Utc};
+    use chrono::{Duration, TimeDelta, Utc};
     use test_log::test;
 
     #[test]
@@ -115,7 +115,7 @@ mod tests {
         let ntp = Ntp::new();
         let mut guard = ntp.local_time_offset.lock().unwrap();
 
-        *guard = Duration::max_value();
+        *guard = TimeDelta::MAX;
         drop(guard);
 
         ntp.update_offset();
@@ -123,7 +123,7 @@ mod tests {
         let updated_value = *guard;
 
         assert!(
-            updated_value != Duration::max_value(),
+            updated_value != TimeDelta::MAX,
             "`ntp.update_offset` should update the ntp offset"
         );
     }

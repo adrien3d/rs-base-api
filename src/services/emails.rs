@@ -44,10 +44,10 @@ pub async fn send_email_with_aws_ses(
 }
 
 // https://www.scaleway.com/en/developers/api/transactional-email/
-pub async fn send_email_with_scw_api(
-    dest: &str,
-    subject: &str,
-    message: &str,
-) -> anyhow::Result<()> {
-    Ok(())
-}
+// pub async fn send_email_with_scw_api(
+//     dest: &str,
+//     subject: &str,
+//     message: &str,
+// ) -> anyhow::Result<()> {
+//     Ok(())
+// }

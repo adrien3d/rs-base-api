@@ -128,8 +128,9 @@ pub struct AuthenticationInfo {
 #[derive(Clone, Debug)]
 pub struct AuthState {
     pub mongo_db: mongodb::Client,
-    /// Temporary method of implementing admin user
-    pub admin_user: Option<ObjectId>,
+    // Temporary method of implementing admin user
+    #[allow(dead_code)]
+    pub admin_user: Option<User>,
 }
 
 use actix_web::{FromRequest, HttpMessage, HttpRequest};

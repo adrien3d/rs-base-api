@@ -17,9 +17,9 @@ lazy_static! {
 
 #[derive(Debug)]
 pub struct GenericDatabaseStatus {
-    pub kind: String,
+    // pub kind: String,
     pub is_connected: bool,
-    pub migrations_performed: bool,
+    // pub last_migrations_performed: String,
 }
 
 #[derive(Debug)]
@@ -37,7 +37,7 @@ pub struct MongoDatabase {
 pub trait GenericDatabase {
     fn new() -> Self;
     async fn connect(&mut self, uri: &str) -> anyhow::Result<&Self>;
-    fn migrate(&self, reference: &str) -> Self;
+    // fn migrate(&self, reference: &str) -> Self;
 }
 
 impl MongoDatabase {
@@ -85,9 +85,9 @@ impl GenericDatabase for MongoDatabase {
     fn new() -> Self {
         MongoDatabase {
             status: GenericDatabaseStatus {
-                kind: "mongo".to_string(),
+                // kind: "mongo".to_string(),
                 is_connected: false,
-                migrations_performed: false,
+                // last_migrations_performed: "".to_string(),
             },
             client: None,
         }
@@ -102,7 +102,7 @@ impl GenericDatabase for MongoDatabase {
         Ok(self)
     }
 
-    fn migrate(&self, _reference: &str) -> Self {
-        todo!()
-    }
+    // fn migrate(&self, _reference: &str) -> Self {
+    //     todo!()
+    // }
 }

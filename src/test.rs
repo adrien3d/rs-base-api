@@ -22,7 +22,7 @@ async fn test() {
     client
         .database(&DATABASE_NAME)
         .collection::<User>(users::REPOSITORY_NAME)
-        .drop(None)
+        .drop()
         .await
         .expect("drop collection should succeed");
 

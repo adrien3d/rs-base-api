@@ -100,11 +100,11 @@ async fn main() -> anyhow::Result<()> {
         password: hashed_password,
     };
 
-    mongo_db.seed_user(admin_user).await?;
+    mongo_db.seed_user(admin_user.clone()).await?;
 
     let auth_data = AuthState {
         mongo_db: mongo_db_client.clone(),
-        admin_user: Some(ObjectId::new()),
+        admin_user: Some(admin_user.clone()),
     };
 
     // let pool = PgPool::connect("postgres://postgres:password@localhost/test").await?;
