@@ -8,17 +8,17 @@ edition = "2021"
 [dependencies]
 actix = "~0.13"
 actix-cors = "~0.7"
-actix-http = "~3.10"
+actix-http = "~3.11"
 actix-identity = "~0.8"
 actix-service = "~2.0"
-actix-web = "~4.10"
+actix-web = "~4.11"
 actix-web-actors = "~4.3"
 aws-config = "~1.6"
-aws-sdk-sesv2 = "~1.70"
+aws-sdk-sesv2 = "~1.80"
 anyhow = "~1.0"
 async-stream = "~0.3"
 async-trait = "~0.1"
-bson = "~2.14"
+bson = "~2.15"
 chrono = "~0.4"
 env_logger = "~0.11"
 envfile = "~0.2"
@@ -37,9 +37,9 @@ serde = { version = "~1.0", features = ["derive"] }
 sqlx = { version = "~0.8", features = [ "runtime-tokio", "tls-native-tls", "postgres" ] }
 stoppable_thread = "~0.2"
 thiserror = "~2.0"
-tokio = { version = "~1.44", features = ["full"] }
+tokio = { version = "~1.45", features = ["full"] }
 dotenv = "0.15.0"
-lazy_static = "1.4.0"
+lazy_static = "1.5.0"
 time = "~0.3"
 
 [dev-dependencies]
