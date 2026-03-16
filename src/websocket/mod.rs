@@ -185,9 +185,8 @@ fn handle_requests(state: &web::Data<ProgramAppState>, request: Document) {
         }
     };
     let result = match id {
-        RequestId::BasicCommand => {
-            bson::from_bson(data.into()).map(|data| handlers::basic_command(state, data))
-        }
+        RequestId::BasicCommand => bson::deserialize_from_bson(data.into())
+            .map(|data| handlers::basic_command(state, data)),
     };
     match result {
         Ok(Ok(_)) => {
