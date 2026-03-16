@@ -15,6 +15,7 @@ pub struct AuthReq {
     pub password: String,
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Claims {
     pub user_id: String,

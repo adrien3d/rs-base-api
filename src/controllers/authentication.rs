@@ -135,6 +135,7 @@ pub struct AuthState {
 
 use actix_web::{FromRequest, HttpMessage, HttpRequest};
 
+#[allow(dead_code)]
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum PermissionType {
     #[serde(rename = "trigger_event")]
@@ -145,6 +146,7 @@ pub enum PermissionType {
     Write,
 }
 
+#[allow(dead_code)]
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Permission {
     #[serde(rename = "permission_type")]
@@ -154,6 +156,7 @@ pub struct Permission {
 }
 
 /// Extracts authentication information for routes that optionally require it.
+#[allow(dead_code)]
 pub struct MaybeAuthenticated(Option<Rc<AuthenticationInfo>>);
 
 impl FromRequest for MaybeAuthenticated {
