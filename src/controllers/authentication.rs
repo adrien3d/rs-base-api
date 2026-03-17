@@ -235,7 +235,7 @@ impl AuthState {
                     Ok(token_claims) => {
                         // Function returned Ok, do something with token_claims
                         //log::debug!("Token claims: {:?}", token_claims);
-                        let req_user = self.get_user_info(token_claims.user_id).await?;
+                        let req_user = self.get_user_info(&token_claims.user_id).await?;
                         //log::debug!("req_user: {req_user:?}");
                         let user = AuthenticationInfo {
                             _user: req_user,
@@ -271,7 +271,7 @@ impl AuthState {
         // }
     }
 
-    async fn get_user_info(&self, user_id: String) -> Result<User, Error> {
+    async fn get_user_info(&self, user_id: &str) -> Result<User, Error> {
         let collection: Collection<users::User> = self
             .mongo_db
             .database(&DATABASE_NAME)
