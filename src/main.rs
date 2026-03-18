@@ -1,4 +1,3 @@
-mod clients;
 mod configuration;
 mod controllers;
 mod drivers;
@@ -153,13 +152,7 @@ async fn main() -> anyhow::Result<()> {
                     .service(controllers::users::create_user)
                     .service(controllers::users::get_user_by_email)
                     .service(controllers::users::update_user)
-                    .service(controllers::users::delete_user_by_id)
-            )
-            .service(
-                web::scope("/songs")
-                    .wrap(AuthenticateMiddlewareFactory::new(auth_data.clone()))
-                    .wrap(IdentityMiddleware::default())
-                    .service(controllers::songs::get_lyrics)
+                    .service(controllers::users::delete_user_by_id),
             )
             .service(web::resource("/ws").route(web::get().to(websocket::handle_ws)))
     })
